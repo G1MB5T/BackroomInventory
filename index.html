@@ -1,0 +1,2936 @@
+<!DOCTYPE html>
+<!-- v2.1 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#1a3a5c"/>
+<title>Backroom Inventory</title>
+<style>
+:root{
+  --blue:#1a3a5c;--blue-mid:#185FA5;--blue-lt:#E6F1FB;--blue-txt:#0C447C;
+  --green:#3B6D11;--green-lt:#EAF3DE;--green-txt:#27500A;
+  --amber:#854F0B;--amber-lt:#FAEEDA;--amber-txt:#633806;
+  --red:#A32D2D;--red-lt:#FCEBEB;--red-txt:#791F1F;
+  --border:#e0ddd6;--border-mid:#c8c5bc;
+  --bg:#f5f4f0;--card:#fff;--text:#1a1917;--text2:#5c5a56;--text3:#9c9a96;
+  --sidebar:240px;--radius:10px;--radius-sm:6px;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+
+/* ── LAYOUT ── */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar);background:var(--blue);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:50}
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.sb-logo-title{font-size:15px;font-weight:700}
+.sb-logo-sub{font-size:11px;opacity:0.6;margin-top:2px}
+.sb-sync{font-size:10px;opacity:0.5;margin-top:4px;display:flex;align-items:center;gap:4px}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:#9c9;display:inline-block}
+.sb-dot.off{background:#c99}
+.sb-nav{padding:12px 0;flex:1;overflow-y:auto}
+.sb-sec{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;opacity:0.45;padding:10px 18px 4px}
+.nav-link{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.75);border:none;background:none;width:100%;text-align:left;border-left:3px solid transparent;font-family:var(--font)}
+.nav-link:hover{background:rgba(255,255,255,0.08);color:#fff}
+.nav-link.active{background:rgba(255,255,255,0.14);color:#fff;border-left-color:#fff}
+.nav-icon{font-size:16px;width:20px;text-align:center}
+.sb-footer{padding:14px 18px;border-top:1px solid rgba(255,255,255,0.1);font-size:11px;opacity:0.5}
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40}
+.topbar-title{font-size:16px;font-weight:600}
+.topbar-right{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text2)}
+.who-badge{display:flex;align-items:center;gap:6px;background:var(--blue-lt);color:var(--blue-txt);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer}
+.who-badge:hover{background:#d0e6f8}
+.fb-badge{font-size:10px;padding:3px 8px;border-radius:999px;font-weight:600}
+.fb-live{background:var(--green-lt);color:var(--green-txt)}
+.fb-off{background:var(--red-lt);color:var(--red-txt)}
+.content{padding:24px;flex:1}
+
+.page{display:none}.page.active{display:block}
+
+/* ── LOGIN ── */
+.login-screen{display:none;position:fixed;inset:0;background:var(--blue);z-index:300;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+.login-screen.open{display:flex}
+.ls-logo{font-size:36px;margin-bottom:6px}
+.ls-title{color:#fff;font-size:22px;font-weight:700;margin-bottom:4px}
+.ls-sub{color:rgba(255,255,255,0.6);font-size:13px;margin-bottom:8px}
+.ls-sync{color:rgba(255,255,255,0.4);font-size:11px;margin-bottom:24px}
+.staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;width:100%;max-width:540px}
+.ssb{background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);border-radius:var(--radius);padding:14px 10px;text-align:center;cursor:pointer;color:#fff;font-family:var(--font)}
+.ssb:hover{background:rgba(255,255,255,0.18);border-color:rgba(255,255,255,0.45)}
+.ssb-av{font-size:26px;margin-bottom:5px}
+.ssb-name{font-size:13px;font-weight:600}
+.ssb-role{font-size:10px;opacity:0.6;margin-top:2px}
+/* New login numpad */
+.lpk{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.15);border-radius:12px;height:58px;color:#fff;font-size:22px;font-weight:600;cursor:pointer;font-family:var(--font);transition:background 0.1s,transform 0.1s;-webkit-tap-highlight-color:transparent}
+.lpk:hover{background:rgba(255,255,255,0.22)}
+.lpk:active{background:rgba(255,255,255,0.35);transform:scale(0.95)}
+.lpk-del{font-size:18px}
+.lpk-clear{font-size:12px;color:rgba(255,255,255,0.7)}
+
+/* ── PIN ── */
+.pin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:400;align-items:center;justify-content:center}
+.pin-overlay.open{display:flex}
+.pin-box{background:var(--blue);border-radius:20px;padding:28px 24px;width:300px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,0.5)}
+.pin-av{font-size:28px}.pin-name{color:#fff;font-size:18px;font-weight:700;margin-bottom:4px}
+.pin-sub{color:rgba(255,255,255,0.6);font-size:12px;margin-bottom:16px}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:16px}
+.pd{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.4)}
+.pd.on{background:#fff;border-color:#fff}
+.pin-error{color:#f09595;font-size:12px;margin-bottom:10px;min-height:18px}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pk{background:rgba(255,255,255,0.12);border:none;border-radius:12px;height:56px;color:#fff;font-size:20px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.pk:hover{background:rgba(255,255,255,0.22)}
+.pk:active{background:rgba(255,255,255,0.35);transform:scale(0.96)}
+.pin-cancel{margin-top:14px;color:rgba(255,255,255,0.5);font-size:12px;cursor:pointer;background:none;border:none;font-family:var(--font)}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.stat-lbl{font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em}
+.stat-val{font-size:26px;font-weight:700;line-height:1}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:4px}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.search-wrap{flex:1;min-width:200px;position:relative}
+.search-wrap input{width:100%;padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--card);color:var(--text)}
+.search-wrap input:focus{outline:none;border-color:var(--blue-mid)}
+.si{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:5px 12px;border-radius:999px;border:1px solid var(--border);font-size:12px;background:var(--card);color:var(--text2);cursor:pointer;font-family:var(--font);white-space:nowrap}
+.chip.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:13px;background:var(--card);color:var(--text);cursor:pointer;font-family:var(--font);white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn-blue{background:var(--blue-mid);color:#fff;border-color:var(--blue-mid)}
+.btn-blue:hover{background:var(--blue)}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* ── TABLE ── */
+.tcard{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.dtbl{width:100%;border-collapse:collapse;table-layout:fixed}
+.dtbl th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text2);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg)}
+.dtbl td{padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);vertical-align:middle}
+.dtbl tr:last-child td{border-bottom:none}
+.dtbl tr:hover td{background:#fafaf8;cursor:pointer}
+.thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--border);cursor:pointer}
+.thumb-ph{width:36px;height:36px;border-radius:6px;background:var(--bg);border:1.5px dashed var(--border-mid);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer}
+.thumb-ph:hover{border-color:var(--blue-mid)}
+.loc-tag{display:inline-block;background:var(--blue-lt);color:var(--blue-txt);font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:999px;font-weight:600}
+.badge-grocery{background:var(--green-lt);color:var(--green-txt)}.badge-frozen{background:var(--blue-lt);color:var(--blue-txt)}.badge-dairy{background:var(--amber-lt);color:var(--amber-txt)}.badge-hbc{background:#FBEAF0;color:#72243E}.badge-gm{background:#F1EFE8;color:#2C2C2A}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.dot-grocery{background:var(--green)}.dot-frozen{background:var(--blue-mid)}.dot-dairy{background:var(--amber)}.dot-hbc{background:#993556}.dot-gm{background:#5F5E5A}
+.qty-in{color:var(--green);font-weight:700}.qty-out{color:var(--red);font-weight:700}
+/* Incomplete product highlighting */
+.row-incomplete td{background:#fff0f0!important;border-left:3px solid var(--red)!important;}
+.row-incomplete td:first-child{border-left:3px solid var(--red)!important;}
+.row-duplicate td{background:#fff8ec!important;border-left:3px solid var(--amber)!important;}
+.incomplete-badge{display:inline-block;font-size:9px;padding:2px 6px;border-radius:999px;background:var(--red-lt);color:var(--red-txt);font-weight:600;margin-left:6px;vertical-align:middle;}
+.import-btn{background:var(--amber);color:#fff;border-color:var(--amber);}
+.import-btn:hover{background:var(--amber-txt);}
+
+/* ── PANEL ── */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px}
+.ph{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg)}
+.ph-title{font-size:13px;font-weight:600}
+.pb{padding:16px}
+.two-col{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+
+/* ── FORM ── */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ff{display:flex;flex-direction:column;gap:5px}
+.ff.full{grid-column:1/-1}
+.fl{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em}
+.fi{padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);color:var(--text);background:var(--card);width:100%}
+.fi:focus{outline:none;border-color:var(--blue-mid)}
+select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235c5a56' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.photo-zone{border:2px dashed var(--border-mid);border-radius:var(--radius);padding:18px;text-align:center;cursor:pointer;background:var(--bg)}
+.photo-zone:hover{border-color:var(--blue-mid);background:var(--blue-lt)}
+
+/* ── SCAN ── */
+.scan-shell{max-width:420px;margin:0 auto}
+.scan-header{background:var(--blue);border-radius:var(--radius);padding:18px;color:#fff;text-align:center;margin-bottom:14px}
+.scan-header h2{font-size:17px;font-weight:700;margin-bottom:4px}
+.scan-who-bar{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.12);border-radius:var(--radius-sm);padding:8px 12px;margin-top:12px;font-size:13px}
+.mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);margin-bottom:14px}
+.mode-tab{padding:12px;text-align:center;cursor:pointer;font-size:14px;font-weight:600;border:none;font-family:var(--font);background:var(--card);color:var(--text2)}
+.mode-tab.in.active{background:var(--green);color:#fff}
+.mode-tab.out.active{background:var(--red);color:#fff}
+.scan-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+.scan-box-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px}
+.scan-anim{border:2px dashed var(--border-mid);border-radius:var(--radius);height:100px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;cursor:pointer;background:var(--bg);margin-bottom:10px;position:relative;overflow:hidden}
+.scan-anim:hover{border-color:var(--blue-mid);background:var(--blue-lt)}
+.scan-anim.go{border-color:var(--green);border-style:solid}
+.scan-bar{position:absolute;left:16px;right:16px;height:2px;background:var(--blue-mid);animation:sb 1.6s ease-in-out infinite;display:none}
+.scan-anim.go .scan-bar{display:block}
+@keyframes sb{0%,100%{top:20%}50%{top:78%}}
+@keyframes scanline{0%,100%{top:10%}50%{top:85%}}
+.sc-wrap{width:70px;height:50px;position:relative;flex-shrink:0}
+.sc::before,.sc::after,.scb::before,.scb::after{content:'';position:absolute;width:14px;height:14px;border-color:var(--text3);border-style:solid}
+.sc::before{top:0;left:0;border-width:2px 0 0 2px}.sc::after{top:0;right:0;border-width:2px 2px 0 0}.scb::before{bottom:0;left:0;border-width:0 0 2px 2px}.scb::after{bottom:0;right:0;border-width:0 2px 2px 0}
+.scan-anim.go .sc::before,.scan-anim.go .sc::after,.scan-anim.go .scb::before,.scan-anim.go .scb::after{border-color:var(--green)}
+.scan-lbl{font-size:12px;color:var(--text2)}.scan-sub{font-size:10px;color:var(--text3)}
+.upc-row{display:flex;gap:8px}
+.upc-row input{flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-family:var(--font);color:var(--text)}
+.upc-row input:focus{outline:none;border-color:var(--blue-mid)}
+.upc-btn{padding:10px 16px;background:var(--blue-mid);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.product-found{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+.pf-hdr{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border)}
+.pf-photo{width:52px;height:52px;border-radius:var(--radius-sm);object-fit:cover;border:1px solid var(--border);flex-shrink:0}
+.pf-photo-ph{width:52px;height:52px;border-radius:var(--radius-sm);background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.pf-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
+.pf-loc{font-size:12px;color:var(--blue-mid);font-weight:600}
+.pf-body{padding:14px}
+.qty-wrap{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.qty-step{display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.qs-btn{width:44px;height:44px;border:none;background:var(--bg);cursor:pointer;font-size:20px;font-weight:700;color:var(--text2);font-family:var(--font)}
+.qs-btn:hover{background:var(--border)}
+.qty-num{width:64px;height:44px;border:none;border-left:1px solid var(--border);border-right:1px solid var(--border);text-align:center;font-size:20px;font-weight:700;font-family:var(--font);color:var(--text);background:var(--card)}
+.qty-num:focus{outline:none}
+.confirm-btn{width:100%;padding:14px;font-size:16px;font-weight:700;border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--font)}
+.confirm-btn.in{background:var(--green);color:#fff}
+.confirm-btn.out{background:var(--red);color:#fff}
+.confirm-btn:active{opacity:0.9;transform:scale(0.99)}
+.scan-hist{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.sh-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px}
+.sh-item:last-child{border-bottom:none}
+.sh-thumb{width:28px;height:28px;border-radius:4px;object-fit:cover;border:1px solid var(--border);flex-shrink:0}
+.sh-thumb-ph{width:28px;height:28px;border-radius:4px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.sh-name{flex:1;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sh-in{color:var(--green);font-weight:700}.sh-out{color:var(--red);font-weight:700}
+
+/* ── LOG ── */
+.log-item{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.log-item:last-child{border-bottom:none}
+.ld{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ld.pos{background:var(--green)}.ld.neg{background:var(--red)}.ld.info{background:var(--blue-mid)}
+.lm{flex:1;font-size:13px;color:var(--text)}
+.lw{font-size:11px;color:var(--blue-mid);font-weight:600;white-space:nowrap}
+.lt{font-size:11px;color:var(--text3);white-space:nowrap}
+.lq{font-size:13px;font-weight:700;min-width:40px;text-align:right}
+.lq.pos{color:var(--green)}.lq.neg{color:var(--red)}
+
+/* ── STAFF CARDS ── */
+.staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-bottom:20px}
+.staff-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.staff-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:10px;background:var(--blue-lt)}
+.staff-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.staff-role{font-size:11px;color:var(--text3)}
+.staff-pin-lbl{font-size:11px;margin-top:4px}
+.pin-set{color:var(--green-txt)}.pin-unset{color:var(--red-txt)}
+
+/* ── MODAL ── */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:center;justify-content:center}
+.mo.open{display:flex}
+.mo-box{background:var(--card);border-radius:var(--radius);width:460px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.mo-hdr{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card);z-index:1}
+.mo-title{font-size:15px;font-weight:600}
+.mo-x{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text3);line-height:1}
+.mo-body{padding:20px}
+.mo-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;position:sticky;bottom:0;background:var(--card)}
+
+/* ── FLASH ── */
+.flash{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:600;pointer-events:none;opacity:0;transition:opacity 0.2s}
+.flash.show{opacity:1}
+.flash-inner{border-radius:var(--radius);padding:28px 36px;text-align:center;color:#fff}
+.flash-icon{font-size:52px;margin-bottom:8px}
+.flash-msg{font-size:18px;font-weight:700}
+.flash-sub{font-size:13px;opacity:0.85;margin-top:4px}
+
+/* ── LOADING ── */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(26,58,92,0.92);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.loading-overlay.open{display:flex}
+.spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{color:#fff;font-size:14px;font-weight:500}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1917;color:#fff;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:500;opacity:0;transition:opacity 0.25s;z-index:700;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1}
+.empty{text-align:center;padding:40px;color:var(--text3);font-size:13px}
+
+/* ── MOBILE ── */
+@media(max-width:768px){
+  #page-picklist > div{grid-template-columns:1fr!important;height:auto!important;}
+  #page-picklist > div > div:first-child{border-right:none!important;border-bottom:1px solid var(--border);}
+  .sidebar{display:none}.main{margin-left:0}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .two-col{grid-template-columns:1fr}
+  .content{padding:12px 12px 80px}
+  .mnav{display:flex!important}
+  .hide-m{display:none}
+}
+.mnav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);z-index:50}
+@keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(163,45,45,0.7);background:#A32D2D;}50%{box-shadow:0 0 0 8px rgba(163,45,45,0);background:#c23535;}}
+.backup-urgent{animation:pulse-red 1.5s ease-in-out infinite!important;color:#fff!important;}
+.mb{flex:1;padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:none;background:none;color:var(--text3);font-size:10px;font-family:var(--font)}
+.mb.active{color:var(--blue-mid)}
+.mi{font-size:20px}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay open" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loadingMsg">Connecting to Firebase…</div>
+</div>
+
+<!-- LOGIN -->
+<!-- UNIFIED LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none">
+    <div style="position:absolute;top:-120px;right:-120px;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>
+    <div style="position:absolute;bottom:-80px;left:-80px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>
+  </div>
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%;max-width:380px;padding:24px 16px">
+    <!-- LOGO -->
+    <svg width="76" height="76" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:10px">
+      <rect x="8" y="32" width="64" height="38" rx="3" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
+      <path d="M4 34L40 10L76 34" stroke="rgba(255,255,255,0.55)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="rgba(255,255,255,0.08)"/>
+      <rect x="28" y="48" width="24" height="22" rx="2" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.45)" stroke-width="1.5"/>
+      <circle cx="38" cy="60" r="2" fill="rgba(255,255,255,0.8)"/>
+      <rect x="12" y="40" width="12" height="10" rx="1.5" fill="rgba(255,255,255,0.25)"/>
+      <rect x="56" y="40" width="12" height="10" rx="1.5" fill="rgba(255,255,255,0.25)"/>
+      <path d="M36 5 Q40 2 44 5" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <path d="M33 8 Q40 3 47 8" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <path d="M30 11 Q40 4 50 11" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+    </svg>
+    <div style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px;margin-bottom:2px">Warehouse Inventory</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:6px">Cornerstone Co-op &middot; St. Paul</div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,0.35);margin-bottom:28px">
+      <div style="width:6px;height:6px;border-radius:50%;background:#6ee7a0" id="loginSyncDot"></div>
+      <span id="loginSyncLbl">Connecting&hellip;</span>
+    </div>
+    <!-- PIN BOX -->
+    <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.13);border-radius:20px;padding:24px 20px;width:100%">
+      <!-- Matched user preview -->
+      <div id="loginUserBadge" style="display:none;text-align:center;margin-bottom:14px;padding:10px 8px;background:rgba(255,255,255,0.1);border-radius:12px;transition:all 0.2s">
+        <div style="font-size:26px" id="loginUserEmoji"></div>
+        <div style="font-size:14px;font-weight:700;color:#fff;margin-top:3px" id="loginUserName"></div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.5)" id="loginUserRole"></div>
+      </div>
+      <div style="text-align:center;font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:14px" id="loginPrompt">Enter your 6-digit PIN</div>
+      <!-- Dots -->
+      <div style="display:flex;justify-content:center;gap:10px;margin-bottom:8px" id="loginDots">
+        <div class="pd" id="lpd0"></div><div class="pd" id="lpd1"></div>
+        <div class="pd" id="lpd2"></div><div class="pd" id="lpd3"></div>
+        <div class="pd" id="lpd4"></div><div class="pd" id="lpd5"></div>
+      </div>
+      <div style="text-align:center;font-size:12px;color:#f09595;min-height:18px;margin-bottom:14px;transition:all 0.2s" id="loginError"></div>
+      <!-- Numpad -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <button class="lpk" onclick="loginPin('1')">1</button>
+        <button class="lpk" onclick="loginPin('2')">2</button>
+        <button class="lpk" onclick="loginPin('3')">3</button>
+        <button class="lpk" onclick="loginPin('4')">4</button>
+        <button class="lpk" onclick="loginPin('5')">5</button>
+        <button class="lpk" onclick="loginPin('6')">6</button>
+        <button class="lpk" onclick="loginPin('7')">7</button>
+        <button class="lpk" onclick="loginPin('8')">8</button>
+        <button class="lpk" onclick="loginPin('9')">9</button>
+        <button class="lpk" onclick="loginClear()" style="font-size:12px;color:rgba(255,255,255,0.6)">Clear</button>
+        <button class="lpk" onclick="loginPin('0')">0</button>
+        <button class="lpk" onclick="loginDel()" style="font-size:18px">&#9003;</button>
+      </div>
+    </div>
+    <div style="margin-top:16px;font-size:10px;color:rgba(255,255,255,0.2);text-align:center">Touch &middot; Mouse &middot; Keyboard supported</div>
+  </div>
+</div>
+
+<!-- PIN OVERLAY (manager re-auth only) -->
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-box">
+    <div class="pin-av" id="pinAv"></div>
+    <div class="pin-name" id="pinName"></div>
+    <div class="pin-sub">Enter 6-digit PIN</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pd" id="pd0"></div><div class="pd" id="pd1"></div>
+      <div class="pd" id="pd2"></div><div class="pd" id="pd3"></div>
+      <div class="pd" id="pd4"></div><div class="pd" id="pd5"></div>
+    </div>
+    <div class="pin-error" id="pinError"></div>
+    <div class="pin-grid" id="pinGrid"></div>
+    <button class="pin-cancel" onclick="cancelPin()">&#8592; Cancel</button>
+  </div>
+</div>
+
+<!-- FLASH -->
+<div class="flash" id="flash">
+  <div class="flash-inner" id="flashInner">
+    <div class="flash-icon" id="flashIcon"></div>
+    <div class="flash-msg" id="flashMsg"></div>
+    <div class="flash-sub" id="flashSub"></div>
+  </div>
+</div>
+
+<div class="shell">
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-title">&#128230; Backroom Inventory</div>
+    <div class="sb-logo-sub">Grocery Division</div>
+    <div class="sb-sync"><span class="sb-dot" id="sbDot"></span><span id="sbSyncLbl">Connecting…</span></div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-sec">Main</div>
+    <button class="nav-link active" onclick="nav('inventory',this)"><span class="nav-icon">&#128202;</span>Inventory</button>
+    <button class="nav-link" onclick="nav('scan',this)"><span class="nav-icon">&#9638;</span>Scan backroom</button>
+    <button class="nav-link" onclick="nav('picklist',this)"><span class="nav-icon">&#128203;</span>Pick list</button>
+    <div class="sb-sec">People</div>
+    <button class="nav-link" onclick="nav('staff',this)"><span class="nav-icon">&#128101;</span>Staff activity</button>
+    <div class="sb-sec">Setup</div>
+    <button class="nav-link" onclick="nav('add',this)"><span class="nav-icon">&#43;</span>Add product</button>
+    <button class="nav-link" id="manageStaffBtn" onclick="requireManagerPin(()=>{nav('team',document.getElementById('manageStaffBtn'));})"><span class="nav-icon">&#9881;</span>Manage staff &#128274;</button>
+    <div class="sb-sec">Records</div>
+    <button class="nav-link" onclick="nav('log',this)"><span class="nav-icon">&#128203;</span>Full log</button>
+  </div>
+  <div style="padding:14px 18px;border-top:1px solid rgba(255,255,255,0.1)">
+  <button onclick="switchUser()" style="width:100%;padding:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-sm);color:rgba(255,255,255,0.7);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);text-align:center">
+    &#128477; Switch / Logout
+  </button>
+  <div style="font-size:10px;color:rgba(255,255,255,0.3);text-align:center;margin-top:8px" id="sbFooter">Ready</div>
+</div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+<div class="topbar">
+  <div class="topbar-title" id="pageTitle">Inventory</div>
+  <div class="topbar-right">
+    <span class="fb-badge fb-off" id="fbBadge">&#9679; Connecting</span>
+    <span id="topDate"></span>
+    <button id="backupBtn" onclick="doBackupNow()" style="display:none;padding:6px 14px;border:none;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);background:var(--green);color:#fff;transition:all 0.3s">&#128190; Backup</button>
+    <div class="who-badge" onclick="switchUser()" id="whoBadge" title="Click to switch user or logout">&#128100; Loading… <span style="font-size:10px;opacity:0.6;margin-left:2px">&#8646;</span></div>
+  </div>
+</div>
+<div class="content">
+
+<!-- INVENTORY -->
+<div class="page active" id="page-inventory">
+  <div class="stats-row" id="statsRow"></div>
+  <div class="toolbar">
+    <div class="search-wrap"><span class="si">&#128269;</span><input type="text" id="searchInput" placeholder="Search product, UPC, location…" oninput="filterProds()"/></div>
+    <div class="chips" id="deptChips"></div>
+    <button class="btn btn-blue" onclick="nav('add',document.querySelectorAll('.nav-link')[3])">+ Add product</button>
+        <button class="btn import-btn" onclick="showImportPanel()">&#8679; Bulk import</button>
+  </div>
+  <div class="tcard">
+    <table class="dtbl">
+      <thead><tr>
+        <th style="width:52px">Photo</th>
+        <th style="width:24%">Product</th>
+        <th style="width:9%">Dept</th>
+        <th style="width:13%">Bay / location</th>
+        <th style="width:10%">In backroom</th>
+        <th class="hide-m" style="width:14%">UPC</th>
+        <th class="hide-m" style="width:8%">Cost</th>
+        <th style="width:12%">Actions</th>
+      </tr></thead>
+      <tbody id="prodBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- SCAN -->
+<div class="page" id="page-scan">
+  <div class="scan-shell">
+    <div class="scan-header">
+      <h2>&#9638; Scan backroom</h2>
+      <p style="font-size:11px;opacity:0.75;margin-bottom:12px">Scan item &rarr; enter qty &rarr; confirm &rarr; syncs to all devices</p>
+      <div class="scan-who-bar">
+        <span style="opacity:0.75">Logged in as:</span>
+        <strong id="scanWhoName" style="color:#fff">—</strong>
+        <button onclick="switchUser()" style="background:rgba(255,255,255,0.18);border:none;border-radius:999px;padding:3px 10px;color:#fff;font-size:11px;cursor:pointer;font-family:var(--font)">Switch</button>
+      </div>
+    </div>
+    <div class="mode-tabs">
+      <button class="mode-tab in active" id="modeInBtn" onclick="setMode('in')">&#8679; Stock IN<br/><span style="font-size:10px;font-weight:400;opacity:0.85">Putting away in back</span></button>
+      <button class="mode-tab out" id="modeOutBtn" onclick="setMode('out')">&#8681; Stock OUT<br/><span style="font-size:10px;font-weight:400;opacity:0.85">Working to the floor</span></button>
+    </div>
+    <div class="scan-box">
+      <div class="scan-box-title">Scan or enter barcode</div>
+
+      <!-- LIVE CAMERA VIEW -->
+      <div id="cameraView" style="display:none;position:relative;width:100%;border-radius:var(--radius);overflow:hidden;margin-bottom:10px;background:#000;min-height:200px">
+        <video id="scanVideo" style="width:100%;display:block;border-radius:var(--radius)" playsinline autoplay muted></video>
+        <!-- Targeting frame -->
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+          <div style="width:240px;height:100px;position:relative">
+            <div style="position:absolute;top:0;left:0;width:22px;height:22px;border-top:3px solid #4ade80;border-left:3px solid #4ade80"></div>
+            <div style="position:absolute;top:0;right:0;width:22px;height:22px;border-top:3px solid #4ade80;border-right:3px solid #4ade80"></div>
+            <div style="position:absolute;bottom:0;left:0;width:22px;height:22px;border-bottom:3px solid #4ade80;border-left:3px solid #4ade80"></div>
+            <div style="position:absolute;bottom:0;right:0;width:22px;height:22px;border-bottom:3px solid #4ade80;border-right:3px solid #4ade80"></div>
+            <div style="position:absolute;top:50%;left:4px;right:4px;height:2px;background:#4ade80;opacity:0.8;animation:scanline 1.8s ease-in-out infinite"></div>
+          </div>
+        </div>
+        <div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.85);font-weight:500">Hold steady — point at barcode</div>
+        <button onclick="stopCamera()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.65);border:none;border-radius:999px;padding:5px 12px;color:#fff;font-size:12px;cursor:pointer;font-family:var(--font)">✕ Cancel</button>
+      </div>
+
+      <!-- MAIN SCAN BUTTON -->
+      <div id="scanTrigger">
+        <button onclick="startCamera()" id="scanMainBtn" style="width:100%;padding:18px;background:var(--blue-mid);color:#fff;border:none;border-radius:var(--radius);font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:24px">&#128247;</span> Scan barcode
+        </button>
+        <div style="font-size:11px;color:var(--text3);text-align:center;margin-bottom:10px">Opens camera — point at product barcode to scan</div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <span style="font-size:11px;color:var(--text3)">or enter manually</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+
+      <div class="upc-row">
+        <input type="text" id="upcInput" placeholder="Type UPC number here…" inputmode="numeric" onkeydown="if(event.key==='Enter')lookupUPC()"/>
+        <button class="upc-btn" onclick="lookupUPC()">Look up</button>
+      </div>
+    </div>
+    <div id="productArea"></div>
+    <div class="scan-hist" id="scanHist" style="display:none">
+      <div class="ph"><span class="ph-title">This session</span><span id="sessCount" style="font-size:11px;color:var(--text3)"></span></div>
+      <div id="scanHistList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STAFF ACTIVITY -->
+<div class="page" id="page-staff">
+  <div class="panel">
+    <div class="ph">
+      <span class="ph-title">Staff activity — all time</span>
+      <select class="fi" style="width:auto;font-size:12px;padding:4px 28px 4px 10px" id="staffFilter" onchange="renderStaffPage()"><option value="">All staff</option></select>
+    </div>
+    <div id="staffLogList"></div>
+  </div>
+</div>
+
+<!-- ADD PRODUCT -->
+<div class="page" id="page-add">
+  <div class="two-col" style="max-width:900px">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Add new product</span></div>
+      <div class="pb">
+        <div class="fg">
+          <div class="ff full"><label class="fl">Product name *</label><input class="fi" id="f_name" placeholder="e.g. Heinz beans 398ml"/></div>
+          <div class="ff"><label class="fl">UPC / Barcode *</label><input class="fi" id="f_upc" inputmode="numeric" placeholder="12-digit UPC"/></div>
+          <div class="ff"><label class="fl">Department *</label>
+            <select class="fi" id="f_dept"><option value="">Select…</option><option>Grocery</option><option>Frozen</option><option>Dairy</option><option>HBC</option><option>GM</option></select>
+          </div>
+          <div class="ff"><label class="fl">Bay / location *</label><input class="fi" id="f_loc" placeholder="e.g. GR-A3 Bay 2"/></div>
+          <div class="ff"><label class="fl">Current backroom qty</label><input class="fi" id="f_qty" type="number" min="0" value="0"/></div>
+          <div class="ff"><label class="fl">Unit cost ($)</label><input class="fi" id="f_cost" type="number" min="0" step="0.01" placeholder="0.00"/></div>
+          <div class="ff full">
+            <label class="fl">Product photo</label>
+            <div class="photo-zone" onclick="document.getElementById('addPhotoInput').click()">
+              <div id="addPhotoEmpty"><div style="font-size:30px;color:var(--text3);margin-bottom:8px">&#128247;</div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px">Take photo or choose from gallery</div><div style="font-size:11px;color:var(--text2)">Photo syncs to Firebase — visible on all devices</div></div>
+              <img id="addPhotoPreview" style="display:none;width:100%;max-height:180px;object-fit:contain;border-radius:8px"/>
+            </div>
+            <input type="file" id="addPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="previewAddPhoto(this)"/>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn" style="flex:1;font-size:12px;padding:6px" onclick="document.getElementById('addPhotoInput').click()">&#128247; Camera / gallery</button>
+              <button class="btn" id="clearPhotoBtn" style="font-size:12px;padding:6px 10px;display:none" onclick="clearAddPhoto()">Remove</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="btn btn-blue" style="padding:10px 20px" onclick="saveProduct()">Save to Firebase</button>
+          <button class="btn" style="padding:10px 16px" onclick="clearAddForm()">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Location guide</span></div>
+      <div class="pb" style="font-size:12px;color:var(--text2);line-height:2.1">
+        <strong style="color:var(--text)">GR-A1 Bay 3</strong> — Grocery, aisle A1, bay 3<br/>
+        <strong style="color:var(--text)">FZ-1 Door 2</strong> — Frozen cooler 1, door 2<br/>
+        <strong style="color:var(--text)">DR-2 Shelf 1</strong> — Dairy cooler 2, shelf 1<br/>
+        <strong style="color:var(--text)">HBC-A Shelf 3</strong> — HBC section A, shelf 3<br/>
+        <strong style="color:var(--text)">GM-B Shelf 2</strong> — GM section B, shelf 2
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE STAFF -->
+<div class="page" id="page-team">
+  <div style="background:var(--red-lt);border:1px solid var(--red);border-radius:var(--radius);padding:14px;margin-bottom:16px;max-width:860px">
+    <div style="font-size:13px;font-weight:700;color:var(--red-txt);margin-bottom:4px">&#9888; Danger Zone</div>
+    <div style="font-size:12px;color:var(--red-txt);margin-bottom:10px">Deletes ALL products from Firebase. Use only to fix import errors — restore from backup after.</div>
+    <button onclick="deleteAllProducts()" style="padding:8px 18px;background:#A32D2D;border:none;border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">&#128465; Delete ALL products</button>
+  </div>
+  <div class="two-col" style="max-width:860px">
+    <div><div class="staff-grid" id="staffGrid"></div></div>
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Add staff member</span></div>
+      <div class="pb">
+        <div class="ff" style="margin-bottom:12px"><label class="fl">Name *</label><input class="fi" id="s_name" placeholder="First name"/></div>
+        <div class="ff" style="margin-bottom:12px"><label class="fl">Role</label><input class="fi" id="s_role" placeholder="e.g. Stock clerk, Lead"/></div>
+        <div class="ff" style="margin-bottom:12px">
+          <label class="fl">6-digit PIN *</label>
+          <input class="fi" id="s_pin" type="password" maxlength="6" inputmode="numeric" placeholder="e.g. 12345656"/>
+          <span style="font-size:11px;color:var(--text3);margin-top:3px">Saves to Firebase — applies on all devices immediately</span>
+        </div>
+        <div class="ff" style="margin-bottom:16px"><label class="fl">Avatar</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="emojiPicker">
+            ${['&#128100;','&#128101;','&#128102;','&#128103;','&#9878;','&#127775;','&#128640;','&#127774;','&#128119;','&#128120;'].map(e=>`<div class="emoji-opt" data-e="${e}" onclick="pickEmoji(this)" style="width:36px;height:36px;border-radius:6px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer">${e}</div>`).join('')}
+          </div>
+        </div>
+        <button class="btn btn-blue" style="width:100%;padding:10px" onclick="addStaff()">Add to Firebase</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOG -->
+<div class="page" id="page-log">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="font-size:13px;color:var(--text2)" id="logCount"></div>
+    <div style="display:flex;gap:8px">
+      <select class="fi" style="width:auto;font-size:12px;padding:4px 28px 4px 10px" id="logStaff" onchange="renderLog()"><option value="">All staff</option></select>
+      <select class="fi" style="width:auto;font-size:12px;padding:4px 28px 4px 10px" id="logType" onchange="renderLog()"><option value="">All actions</option><option value="+">Stock IN</option><option value="-">Stock OUT</option></select>
+    </div>
+  </div>
+  <div class="panel"><div id="logList"></div></div>
+</div>
+
+
+<!-- PICK LIST PAGE -->
+<div class="page" id="page-picklist">
+  <div style="max-width:700px;margin:0 auto">
+
+    <!-- SCAN BUTTON - first thing on page, impossible to miss -->
+    <div style="background:var(--blue-mid);border-radius:var(--radius);padding:16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="color:#fff;font-size:15px;font-weight:700">&#128203; Pick List &nbsp;<span id="pickCount" style="opacity:0.75;font-size:12px;font-weight:400">— 0 items</span></div>
+        <div style="display:flex;gap:6px">
+          <button onclick="clearPickList()" style="padding:5px 12px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.35);border-radius:var(--radius-sm);color:#fff;font-size:12px;cursor:pointer;font-family:var(--font)">Clear</button>
+          <button onclick="printPickList()" id="printPickBtn" style="padding:5px 14px;background:#fff;border:none;border-radius:var(--radius-sm);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);display:none">Print</button>
+        </div>
+      </div>
+
+      <!-- Camera view - hidden until scanning -->
+      <div id="pickCameraView" style="display:none;position:relative;border-radius:var(--radius);overflow:hidden;margin-bottom:10px;background:#000">
+        <video id="pickScanVideo" style="width:100%;display:block;max-height:220px;object-fit:cover" playsinline autoplay muted></video>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+          <div style="width:200px;height:80px;position:relative">
+            <div style="position:absolute;top:0;left:0;width:18px;height:18px;border-top:3px solid #4ade80;border-left:3px solid #4ade80"></div>
+            <div style="position:absolute;top:0;right:0;width:18px;height:18px;border-top:3px solid #4ade80;border-right:3px solid #4ade80"></div>
+            <div style="position:absolute;bottom:0;left:0;width:18px;height:18px;border-bottom:3px solid #4ade80;border-left:3px solid #4ade80"></div>
+            <div style="position:absolute;bottom:0;right:0;width:18px;height:18px;border-bottom:3px solid #4ade80;border-right:3px solid #4ade80"></div>
+            <div style="position:absolute;top:50%;left:4px;right:4px;height:2px;background:#4ade80;animation:scanline 1.8s ease-in-out infinite"></div>
+          </div>
+        </div>
+        <button onclick="stopPickCamera()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);border:none;border-radius:999px;padding:5px 14px;color:#fff;font-size:12px;cursor:pointer;font-family:var(--font)">Stop</button>
+        <div style="position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.85)">Point at shelf barcode</div>
+      </div>
+
+      <!-- THE BIG SCAN BUTTON -->
+      <div id="pickScanTrigger">
+        <button onclick="startPickCamera()" style="width:100%;padding:18px;background:#fff;color:var(--blue);border:none;border-radius:var(--radius);font-size:17px;font-weight:800;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:12px">
+          <span style="font-size:26px">&#128247;</span> Start scanning
+        </button>
+      </div>
+
+      <!-- Manual UPC -->
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input type="text" id="pickUpcInput" placeholder="Or type UPC manually..." inputmode="numeric"
+          style="flex:1;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:rgba(255,255,255,0.12);color:#fff;outline:none"
+          onkeydown="if(event.key==='Enter')addToPickList(document.getElementById('pickUpcInput').value)" />
+        <button onclick="addToPickList(document.getElementById('pickUpcInput').value)" 
+          style="padding:10px 18px;background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)">Add</button>
+      </div>
+    </div>
+
+    <!-- PICK LIST ITEMS -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:600;color:var(--text)">Items to pull from backroom</div>
+      <div style="font-size:11px;color:var(--text3)" id="pickListDate"></div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px" id="pickListItems">
+      <div style="padding:30px;text-align:center;color:var(--text3);font-size:13px">Scan shelf barcodes to build your pick list</div>
+    </div>
+    <div id="pickListContainer" style="display:none">
+      <button onclick="printPickList()" style="width:100%;padding:13px;background:var(--blue-mid);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font)">&#128424; Print Pick List</button>
+    </div>
+
+  </div>
+</div>
+
+</div></div></div>
+
+<!-- MOBILE NAV -->
+<nav class="mnav">
+  <button class="mb active" onclick="nav('inventory',this)"><span class="mi">&#128202;</span>Inventory</button>
+  <button class="mb" onclick="nav('scan',this)"><span class="mi">&#9638;</span>Scan</button>
+  <button class="mb" onclick="nav('picklist',this)"><span class="mi">&#128203;</span>Pick list</button>
+  <button class="mb" onclick="nav('staff',this)"><span class="mi">&#128101;</span>Staff</button>
+  <button class="mb" onclick="nav('add',this)"><span class="mi">&#43;</span>Add</button>
+  <button class="mb" onclick="nav('log',this)"><span class="mi">&#128203;</span>Log</button>
+  <button class="mb" onclick="switchUser()"><span class="mi">&#128477;</span>Logout</button>
+</nav>
+
+<!-- ADJUST MODAL -->
+<div class="mo" id="adjMo">
+  <div class="mo-box">
+    <div class="mo-hdr"><span class="mo-title" id="adjTitle">Adjust</span><button class="mo-x" onclick="closeMo('adjMo')">&#215;</button></div>
+    <div class="mo-body" id="adjBody"></div>
+    <div class="mo-foot">
+      <button class="btn btn-red" onclick="deleteProduct(window._adjPid)" style="margin-right:auto">&#128465; Delete product</button>
+      <button class="btn" onclick="closeMo('adjMo')">Cancel</button>
+      <button class="btn btn-blue" onclick="saveAdjust()">Save to Firebase</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO MODAL -->
+<div class="mo" id="photoMo">
+  <div class="mo-box" style="width:380px">
+    <div class="mo-hdr"><span class="mo-title" id="photoMoTitle">Photo</span><button class="mo-x" onclick="closeMo('photoMo')">&#215;</button></div>
+    <div class="mo-body" id="photoMoBody"></div>
+    <div class="mo-foot"><button class="btn" onclick="closeMo('photoMo')">Close</button><button class="btn btn-blue" onclick="document.getElementById('photoMoInput').click()">&#128247; Change photo</button></div>
+  </div>
+</div>
+<input type="file" id="photoMoInput" accept="image/*" capture="environment" style="display:none" onchange="saveModalPhoto(this)"/>
+
+<!-- CHANGE PIN MODAL -->
+<div class="mo" id="pinChangeMo">
+  <div class="mo-box" style="width:360px">
+    <div class="mo-hdr"><span class="mo-title" id="pinChangeMoTitle">Change PIN</span><button class="mo-x" onclick="closeMo('pinChangeMo')">&#215;</button></div>
+    <div class="mo-body">
+      <div class="ff" style="margin-bottom:12px"><label class="fl">New 6-digit PIN</label><input class="fi" id="newPin1" type="password" maxlength="6" inputmode="numeric" placeholder="Enter new 6-digit PIN"/></div>
+      <div class="ff"><label class="fl">Confirm PIN</label><input class="fi" id="newPin2" type="password" maxlength="6" inputmode="numeric" placeholder="Re-enter 6-digit PIN"/></div>
+    </div>
+    <div class="mo-foot"><button class="btn" onclick="closeMo('pinChangeMo')">Cancel</button><button class="btn btn-blue" onclick="saveNewPin()">Save PIN</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- BACKUP MODAL -->
+<div class="mo" id="backupMo">
+  <div class="mo-box" style="width:500px">
+    <div class="mo-hdr">
+      <span class="mo-title">&#128190; Backup &amp; Restore</span>
+      <button class="mo-x" onclick="closeMo('backupMo')">&#215;</button>
+    </div>
+    <div class="mo-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div style="background:var(--green-lt);border:1px solid var(--green);border-radius:var(--radius);padding:16px;text-align:center">
+          <div style="font-size:28px;margin-bottom:8px">&#128190;</div>
+          <div style="font-size:13px;font-weight:700;color:var(--green-txt);margin-bottom:4px">Export backup</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Download full inventory as Excel file</div>
+          <button onclick="exportToExcel()" class="btn btn-green" style="width:100%;font-size:12px;padding:8px">&#8681; Download Excel</button>
+        </div>
+        <div style="background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:var(--radius);padding:16px;text-align:center">
+          <div style="font-size:28px;margin-bottom:8px">&#128196;</div>
+          <div style="font-size:13px;font-weight:700;color:var(--blue-txt);margin-bottom:4px">Import backup</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Restore from a previous Excel backup</div>
+          <button onclick="document.getElementById('restoreInput').click()" class="btn btn-blue" style="width:100%;font-size:12px;padding:8px">&#8679; Choose Excel file</button>
+          <input type="file" id="restoreInput" accept=".xlsx,.csv" style="display:none" onchange="importFromExcel(this)"/>
+        </div>
+      </div>
+      <div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;font-size:12px;color:var(--text2);margin-bottom:12px">
+        <strong>Last backup:</strong> <span id="lastBackupTime">Never</span><br/>
+        <span style="font-size:11px;color:var(--text3)">Backup files are saved to your Downloads folder</span>
+      </div>
+      <div id="backupLog" style="display:none;max-height:150px;overflow-y:auto;font-size:11px;font-family:monospace;background:var(--bg);border-radius:var(--radius-sm);padding:10px;color:var(--text2)"></div>
+    </div>
+    <div class="mo-foot">
+      <button class="btn" onclick="closeMo('backupMo')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- FIREBASE SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+import { getFirestore, collection, doc, onSnapshot, setDoc, updateDoc, addDoc, query, orderBy, limit, getDocs, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js';
+
+// ── FIREBASE CONFIG ──────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBlum4fAE-BzjJJu5T6eCH8uqjO4gMtS5w",
+  authDomain: "storebackroom-e044c.firebaseapp.com",
+  projectId: "storebackroom-e044c",
+  storageBucket: "storebackroom-e044c.firebasestorage.app",
+  messagingSenderId: "1082072985328",
+  appId: "1:1082072985328:web:c467114e967266f84e9c35",
+  measurementId: "G-ZVNWZXQJ96"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+  // Expose Firebase functions immediately
+  window._deleteProduct = async function(id) { await deleteDoc(doc(db,'products',id)); };
+  window._archiveProduct = async function(p) {
+    if(!p||!p.upc) return;
+    await setDoc(doc(db,'archive',String(p.upc)), {
+      upc:p.upc, name:p.name||'', dept:p.dept||'GM',
+      loc:p.loc||'', price:p.price||0, cost:p.cost||0,
+      photo:p.photo||null, archivedAt:Date.now()
+    });
+  };
+  window._lookupArchive = async function(upc) {
+    try {
+      const snap = await getDocs(collection(db,'archive'));
+      let found = null;
+      snap.forEach(d=>{ if(String(d.data().upc)===String(upc)) found=d.data(); });
+      return found;
+    } catch(e) { return null; }
+  };
+let storage;
+try { storage = getStorage(app); } catch(e) { storage = null; }
+
+// ── LIVE DATA REFS ───────────────────────────────────────────────
+let PRODUCTS = {};   // id → product object  (live from Firestore)
+let STAFF    = {};   // id → staff object     (live from Firestore)
+let LOGS     = [];   // array of log entries  (live from Firestore)
+let fbReady  = false;
+
+// ── SEED DEFAULT DATA IF EMPTY ────────────────────────────────────
+async function seedIfEmpty() {
+  const snap = await getDocs(collection(db,'products'));
+  if (!snap.empty) return;
+  showLoading('Setting up your backroom for the first time…');
+  const defaultProducts = [
+    {upc:'055742100015',name:"Campbell's tomato soup 10oz",dept:'Grocery',loc:'GR-A1 Bay 3',backroom:24,cost:0.89,photo:null},
+    {upc:'038000845321',name:"Kellogg's Corn Flakes 18oz",dept:'Grocery',loc:'GR-A2 Bay 1',backroom:12,cost:3.49,photo:null},
+    {upc:'016000119697',name:'Betty Crocker brownie mix',dept:'Grocery',loc:'GR-B1 Bay 2',backroom:8,cost:2.19,photo:null},
+    {upc:'070800009101',name:'Heinz ketchup 32oz',dept:'Grocery',loc:'GR-B3 Bay 4',backroom:18,cost:3.79,photo:null},
+    {upc:'011110835338',name:'Quaker oats 42oz',dept:'Grocery',loc:'GR-C1 Bay 1',backroom:0,cost:4.29,photo:null},
+    {upc:'013800002401',name:"Jell-O strawberry 6oz",dept:'Grocery',loc:'GR-C2 Bay 3',backroom:6,cost:0.99,photo:null},
+    {upc:'014800000517',name:"DiGiorno pepperoni pizza",dept:'Frozen',loc:'FZ-1 Door 2',backroom:10,cost:6.99,photo:null},
+    {upc:'028400064057',name:"Birds Eye mixed veggies 12oz",dept:'Frozen',loc:'FZ-1 Door 4',backroom:22,cost:1.79,photo:null},
+    {upc:'077890513484',name:"Breyers vanilla ice cream 48oz",dept:'Frozen',loc:'FZ-2 Door 1',backroom:8,cost:5.49,photo:null},
+    {upc:'041268196938',name:"Great Value frozen fries 5lb",dept:'Frozen',loc:'FZ-2 Door 3',backroom:0,cost:3.89,photo:null},
+    {upc:'011110038135',name:"Saputo marble cheddar 400g",dept:'Dairy',loc:'DR-1 Shelf 2',backroom:14,cost:5.99,photo:null},
+    {upc:'026900010206',name:"Beatrice 2% milk 4L",dept:'Dairy',loc:'DR-1 Shelf 1',backroom:20,cost:5.49,photo:null},
+    {upc:'030000011608',name:"Astro yogurt 16 pack",dept:'Dairy',loc:'DR-2 Shelf 3',backroom:6,cost:6.79,photo:null},
+    {upc:'037600102810',name:"Philadelphia cream cheese 250g",dept:'Dairy',loc:'DR-2 Shelf 1',backroom:0,cost:3.49,photo:null},
+    {upc:'037000864257',name:"Crest 3D White toothpaste",dept:'HBC',loc:'HBC-A Shelf 2',backroom:9,cost:4.99,photo:null},
+    {upc:'037000131052',name:"Tide Pods 42ct",dept:'HBC',loc:'HBC-B Shelf 1',backroom:4,cost:14.99,photo:null},
+    {upc:'073010001076',name:"Advil 72ct ibuprofen",dept:'HBC',loc:'HBC-C Shelf 3',backroom:7,cost:9.99,photo:null},
+    {upc:'036000291452',name:"Kleenex tissues 6pk",dept:'GM',loc:'GM-A Shelf 1',backroom:11,cost:6.49,photo:null},
+    {upc:'030772015260',name:"Glad garbage bags 30ct",dept:'GM',loc:'GM-A Shelf 3',backroom:3,cost:7.99,photo:null},
+    {upc:'025700503415',name:"Energizer AA 8pk",dept:'GM',loc:'GM-B Shelf 2',backroom:5,cost:8.49,photo:null},
+  ];
+  const defaultStaff = [
+    {name:'Manager',role:'Store manager',emoji:'⚙️',pinHash:'111111',isManager:true},
+    {name:'Alex',role:'Stock clerk',emoji:'👤',pinHash:'222222',isManager:false},
+    {name:'Sam',role:'Stock clerk',emoji:'👥',pinHash:'333333',isManager:false},
+    {name:'Jordan',role:'Lead clerk',emoji:'⭐',pinHash:'444444',isManager:false},
+  ];
+  for (const p of defaultProducts) await addDoc(collection(db,'products'), p);
+  for (const s of defaultStaff)   await addDoc(collection(db,'staff'),    s);
+}
+
+// ── REAL-TIME LISTENERS ───────────────────────────────────────────
+function startListeners() {
+  // Products — live updates
+  onSnapshot(collection(db,'products'), snap => {
+    PRODUCTS = {};
+    snap.forEach(d => { PRODUCTS[d.id] = {...d.data(), _id: d.id}; });
+    window._PRODUCTS = PRODUCTS;
+    if (fbReady) { renderInventory(); }
+    setFbStatus(true);
+  }, err => { setFbStatus(false); console.error(err); });
+
+  // Staff — live updates
+  onSnapshot(collection(db,'staff'), snap => {
+    STAFF = {};
+    snap.forEach(d => { STAFF[d.id] = {...d.data(), _id: d.id}; });
+    renderLoginScreen();
+    if (fbReady) renderTeam();
+    setFbStatus(true);
+  }, err => { setFbStatus(false); });
+
+  // Logs — live, last 200
+  onSnapshot(query(collection(db,'logs'), orderBy('ts','desc'), limit(200)), snap => {
+    LOGS = [];
+    snap.forEach(d => { LOGS.push({...d.data(), _id: d.id}); });
+    if (fbReady) { renderLog(); renderStaffPage(); }
+    setFbStatus(true);
+  }, err => { setFbStatus(false); });
+}
+
+// ── FIRESTORE HELPERS ─────────────────────────────────────────────
+async function updateProduct(id, data) {
+  await updateDoc(doc(db,'products',id), data);
+}
+async function addProduct(data) {
+  return await addDoc(collection(db,'products'), data);
+}
+async function addLog(entry) {
+  entry.ts = Date.now();
+  await addDoc(collection(db,'logs'), entry);
+}
+async function updateStaff(id, data) {
+  await updateDoc(doc(db,'staff',id), data);
+}
+async function addStaffDoc(data) {
+  return await addDoc(collection(db,'staff'), data);
+}
+async function deleteStaffDoc(id) {
+  await deleteDoc(doc(db,'staff',id));
+}
+
+// ── PHOTO UPLOAD ──────────────────────────────────────────────────
+async function uploadPhoto(file, productId) {
+  if (!storage) return null;
+  try {
+    const r = storageRef(storage, `products/${productId}/photo.jpg`);
+    const compressed = await compressToBlob(file);
+    const snap = await uploadBytes(r, compressed);
+    return await getDownloadURL(snap.ref);
+  } catch(e) {
+    console.warn('Photo upload failed (Storage may need Blaze plan):', e);
+    return null;
+  }
+}
+
+function compressToBlob(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w=img.width, h=img.height, mx=700;
+        if(w>mx){h=Math.round(h*mx/w);w=mx;}
+        if(h>mx){w=Math.round(w*mx/h);h=mx;}
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        c.toBlob(b=>resolve(b),'image/jpeg',0.80);
+      };img.src=e.target.result;
+    };reader.readAsDataURL(file);
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+async function init() {
+  showLoading('Connecting to Firebase…');
+  
+  // Timeout — if Firebase doesn't respond in 8 seconds, show error with retry
+  const timeout = setTimeout(() => {
+    document.getElementById('loadingMsg').textContent = 'Connection timeout — tap to retry';
+    document.getElementById('loadingOverlay').style.cursor = 'pointer';
+    document.getElementById('loadingOverlay').onclick = () => { location.reload(); };
+  }, 8000);
+
+  try {
+    // Start listeners first — don't wait for seed
+    startListeners();
+    
+    // Give Firebase 3 seconds to send first snapshot
+    await new Promise(r => setTimeout(r, 3000));
+    
+    // Check if we got data
+    if (Object.keys(PRODUCTS).length === 0 && Object.keys(STAFF).length === 0) {
+      // Try seeding
+      try {
+        await seedIfEmpty();
+        await new Promise(r => setTimeout(r, 2000));
+      } catch(e) {
+        console.warn('Seed failed:', e);
+      }
+    }
+    
+    clearTimeout(timeout);
+    fbReady = true;
+    hideLoading();
+    renderInventory();
+    renderLoginScreen();
+    document.getElementById('loginScreen').classList.add('open');
+    // Auto-migrate any 6-digit PINs to 6-digit
+    setTimeout(migratePins, 2000);
+    
+  } catch(e) {
+    clearTimeout(timeout);
+    console.error('Firebase init error:', e);
+    document.getElementById('loadingMsg').textContent = 'Connection failed: ' + e.message + ' — tap to retry';
+    document.getElementById('loadingOverlay').style.cursor = 'pointer';
+    document.getElementById('loadingOverlay').onclick = () => { location.reload(); };
+  }
+}
+
+// Migrate 6-digit PINs to 6-digit automatically
+async function migratePins() {
+  const pinMap = {'1111':'111111','2222':'222222','3333':'333333','4444':'444444'};
+  const staffList = Object.values(STAFF);
+  for (const s of staffList) {
+    if (s.pinHash && s.pinHash.length === 4 && pinMap[s.pinHash]) {
+      try {
+        await updateStaff(s._id, {pinHash: pinMap[s.pinHash]});
+        console.log('Migrated PIN for:', s.name);
+      } catch(e) { console.warn('Migration failed for', s.name, e); }
+    }
+  }
+}
+
+init();
+
+// ══ UI FUNCTIONS — exposed to window ══════════════════════════════
+const DEPTS = ['Grocery','Frozen','Dairy','HBC','GM'];
+const DCLS  = {Grocery:'grocery',Frozen:'frozen',Dairy:'dairy',HBC:'hbc',GM:'gm'};
+let currentStaff = null;
+let pinTarget = null, pinBuffer = '', pinCallback = null;
+let scanMode = 'in', scanSession = [], currentProd = null, demoIdx = 0;
+let curDept = 'All', srch = '';
+let adjPid = null, photoPid = null, changePinForId = null, pickedEmoji = '👤';
+let addPhotoData = null, addPhotoFile = null;
+
+const DEMO_UPCS = ['055742100015','038000845321','014800000517','026900010206','011110835338','030772015260','999900000001'];
+
+function nowTime(){return new Date().toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});}
+function todayStr(){return new Date().toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric',year:'numeric'});}
+document.getElementById('topDate').textContent = todayStr();
+
+function toast(msg,dur=2400){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+function showFlash(icon,msg,sub,bg){
+  document.getElementById('flashInner').style.background=bg;
+  document.getElementById('flashIcon').innerHTML=icon;
+  document.getElementById('flashMsg').textContent=msg;
+  document.getElementById('flashSub').textContent=sub;
+  const f=document.getElementById('flash');f.classList.add('show');
+  setTimeout(()=>f.classList.remove('show'),1800);
+}
+function showLoading(msg){document.getElementById('loadingMsg').textContent=msg;document.getElementById('loadingOverlay').classList.add('open');}
+function hideLoading(){document.getElementById('loadingOverlay').classList.remove('open');}
+function setLoading(msg){document.getElementById('loadingMsg').textContent=msg;}
+function setFbStatus(ok){
+  // Expose key vars to window for regular scripts
+  window._PRODUCTS = PRODUCTS;
+  window._updateProduct = updateProduct;
+  window._addProduct = addProduct;
+  window._deleteProduct = async function(id) { await deleteDoc(doc(db,'products',id)); };
+  window._archiveProduct = async function(p) {
+    if(!p||!p.upc) return;
+    await setDoc(doc(db,'archive',String(p.upc)), {
+      upc:p.upc, name:p.name||'', dept:p.dept||'GM',
+      loc:p.loc||'', price:p.price||0, cost:p.cost||0,
+      photo:p.photo||null, archivedAt:Date.now()
+    });
+  };
+  window._lookupArchive = async function(upc) {
+    try {
+      const snap = await getDocs(collection(db,'archive'));
+      let found = null;
+      snap.forEach(d=>{ if(String(d.data().upc)===String(upc)) found=d.data(); });
+      return found;
+    } catch(e) { return null; }
+  };
+  document.getElementById('fbBadge').textContent = ok ? '⬤ Firebase live' : '⬤ Offline';
+  document.getElementById('fbBadge').className = 'fb-badge ' + (ok?'fb-live':'fb-off');
+  document.getElementById('sbDot').className = 'sb-dot ' + (ok?'':'off');
+  document.getElementById('sbSyncLbl').textContent = ok ? 'Live — all devices synced' : 'Connection lost';
+}
+
+// ── PAGES ─────────────────────────────────────────────────────────
+const TITLES={inventory:'Inventory',scan:'Scan backroom',picklist:'Pick List',staff:'Staff activity',add:'Add product',team:'Manage staff',log:'Full log'};
+window.nav = function(p,btn){
+  // Stop camera if navigating away from scan page
+  if(p !== 'scan' && window.stopCamera) window.stopCamera();
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-link,.mb').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  if(btn)btn.classList.add('active');
+  document.getElementById('pageTitle').textContent=TITLES[p]||p;
+  if(p==='inventory')renderInventory();
+  if(p==='staff')renderStaffPage();
+  if(p==='log')renderLog();
+  if(p==='team')renderTeam();
+};
+
+// ── AUTH ──────────────────────────────────────────────────────────
+function renderLoginScreen(){
+  // Update sync status on login screen
+  const dot = document.getElementById('loginSyncDot');
+  const lbl = document.getElementById('loginSyncLbl');
+  if(dot) dot.style.background = fbReady ? '#6ee7a0' : '#fca5a5';
+  if(lbl) lbl.textContent = fbReady ? 'Live sync — all devices connected' : 'Connecting…';
+}
+
+// New unified PIN login state
+let loginBuffer = '';
+
+window.loginPin = function(d) {
+  if(loginBuffer.length >= 6) return;
+  loginBuffer += d;
+  updateLoginDots();
+  document.getElementById('loginError').textContent = '';
+  if(loginBuffer.length === 6) setTimeout(checkLoginPin, 150);
+};
+
+window.loginDel = function() {
+  loginBuffer = loginBuffer.slice(0,-1);
+  updateLoginDots();
+  document.getElementById('loginError').textContent = '';
+  // Clear user preview if buffer empty
+  if(!loginBuffer) {
+    document.getElementById('loginUserBadge').style.display = 'none';
+    document.getElementById('loginPrompt').textContent = 'Enter your 6-digit PIN';
+  }
+};
+
+window.loginClear = function() {
+  loginBuffer = '';
+  updateLoginDots();
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginUserBadge').style.display = 'none';
+  document.getElementById('loginPrompt').textContent = 'Enter your 6-digit PIN';
+};
+
+function updateLoginDots() {
+  for(let i=0;i<6;i++) {
+    const el = document.getElementById('lpd'+i);
+    if(el) el.classList.toggle('on', i < loginBuffer.length);
+  }
+  // Show preview of matching user as they type (after 4+ digits)
+  if(loginBuffer.length >= 4) {
+    const match = Object.values(STAFF).find(s => s.pinHash && s.pinHash.startsWith(loginBuffer));
+    if(match) {
+      document.getElementById('loginUserBadge').style.display = 'block';
+      document.getElementById('loginUserEmoji').textContent = match.emoji;
+      document.getElementById('loginUserName').textContent = match.name;
+      document.getElementById('loginUserRole').textContent = match.role;
+      document.getElementById('loginPrompt').textContent = 'Keep going…';
+    }
+  } else {
+    document.getElementById('loginUserBadge').style.display = 'none';
+  }
+}
+
+function checkLoginPin() {
+  const match = Object.values(STAFF).find(s => s.pinHash === loginBuffer);
+  if(match) {
+    // Success
+    currentStaff = match;
+    window._currentStaff = match;
+    document.getElementById('loginScreen').classList.remove('open');
+    loginBuffer = '';
+    updateLoginDots();
+    document.getElementById('loginUserBadge').style.display = 'none';
+    document.getElementById('loginPrompt').textContent = 'Enter your 6-digit PIN';
+    document.getElementById('loginError').textContent = '';
+    updateWhoBadge();
+    renderInventory();
+    toast('Welcome, ' + match.name + '!');
+    if(typeof checkBackupStatus === 'function') checkBackupStatus();
+  } else {
+    // Wrong PIN
+    document.getElementById('loginError').textContent = 'Incorrect PIN — try again';
+    const box = document.querySelector('.login-screen > div:last-child');
+    // Shake animation
+    document.getElementById('loginDots').style.transform = 'translateX(-8px)';
+    setTimeout(()=>{ document.getElementById('loginDots').style.transform='translateX(8px)';},80);
+    setTimeout(()=>{ document.getElementById('loginDots').style.transform='';},160);
+    loginBuffer = '';
+    updateLoginDots();
+    document.getElementById('loginUserBadge').style.display = 'none';
+    document.getElementById('loginPrompt').textContent = 'Enter your 6-digit PIN';
+  }
+}
+
+// Keyboard support for login screen
+document.addEventListener('keydown', function(e) {
+  const loginOpen = document.getElementById('loginScreen').classList.contains('open');
+  const pinOpen = document.getElementById('pinOverlay').classList.contains('open');
+  if(loginOpen && !pinOpen) {
+    if(e.key >= '0' && e.key <= '9') window.loginPin(e.key);
+    else if(e.key === 'Backspace') window.loginDel();
+    else if(e.key === 'Escape') window.loginClear();
+  } else if(pinOpen) {
+    if(e.key >= '0' && e.key <= '9') window.pinPress(e.key);
+    else if(e.key === 'Backspace') window.pinDel();
+  }
+});
+
+window.startPin = function(sid, cb) {
+  pinTarget = STAFF[sid];
+  pinBuffer = ''; pinCallback = cb || null;
+  document.getElementById('pinAv').innerHTML = pinTarget.emoji;
+  document.getElementById('pinName').textContent = pinTarget.name;
+  document.getElementById('pinError').textContent = '';
+  updatePinDots();
+  buildPinGrid();
+  document.getElementById('pinOverlay').classList.add('open');
+};
+
+function buildPinGrid(){
+  const keys=['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  document.getElementById('pinGrid').innerHTML=keys.map(k=>{
+    if(k==='')return`<div></div>`;
+    if(k==='⌫')return`<button class="pk" onclick="pinDel()">⌫</button>`;
+    return`<button class="pk" onclick="pinPress('${k}')">${k}</button>`;
+  }).join('');
+}
+window.pinPress=function(d){if(pinBuffer.length>=6)return;pinBuffer+=d;updatePinDots();if(pinBuffer.length===6)setTimeout(checkPin,120);};
+window.pinDel=function(){pinBuffer=pinBuffer.slice(0,-1);updatePinDots();document.getElementById('pinError').textContent='';};
+function updatePinDots(){for(let i=0;i<6;i++){const el=document.getElementById('pd'+i);if(el)el.classList.toggle('on',i<pinBuffer.length);}}
+function checkPin(){
+  if(!pinTarget)return;
+  if(pinBuffer===pinTarget.pinHash){
+    document.getElementById('pinOverlay').classList.remove('open');
+    if(pinCallback){const cb=pinCallback;pinCallback=null;pinTarget=null;pinBuffer='';cb();}
+    else{currentStaff=pinTarget;pinTarget=null;pinBuffer='';document.getElementById('loginScreen').classList.remove('open');updateWhoBadge();toast('Welcome, '+currentStaff.name+'!');renderInventory();}
+  } else {
+    pinBuffer='';updatePinDots();
+    document.getElementById('pinError').textContent='Incorrect PIN. Try again.';
+    const box=document.querySelector('.pin-box');
+    box.style.transform='translateX(-8px)';setTimeout(()=>box.style.transform='translateX(8px)',80);setTimeout(()=>box.style.transform='',160);
+  }
+}
+window.cancelPin=function(){document.getElementById('pinOverlay').classList.remove('open');pinBuffer='';pinTarget=null;pinCallback=null;};
+window.switchUser=function(){
+  currentStaff=null;window._currentStaff=null;
+  updateWhoBadge();
+  loginBuffer='';
+  updateLoginDots();
+  document.getElementById('loginError').textContent='';
+  document.getElementById('loginUserBadge').style.display='none';
+  document.getElementById('loginPrompt').textContent='Enter your 6-digit PIN';
+  document.getElementById('loginScreen').classList.add('open');
+  if(typeof checkBackupStatus==='function') checkBackupStatus();
+};
+function updateWhoBadge(){
+  const b=document.getElementById('whoBadge');
+  const n=document.getElementById('scanWhoName');
+  if(currentStaff){b.innerHTML=currentStaff.emoji+' '+currentStaff.name+(currentStaff.isManager?' 🔒':'');if(n)n.textContent=currentStaff.name;}
+  else{b.innerHTML='👤 Not logged in';if(n)n.textContent='Not logged in';}
+  window._currentStaff = currentStaff;
+  if(typeof checkBackupStatus === 'function') checkBackupStatus();
+}
+
+window._updateBackupTime = async function() {
+  try { await setDoc(doc(db,'settings','backup'), {lastBackup: Date.now()}); } catch(e) {}
+};
+window.setAdjStatus = function(status) {
+  const isBackroom = status === 'backroom';
+  const qtySection = document.getElementById('adjQtySection');
+  const btnBack = document.getElementById('adjStatusBackroom');
+  const btnFloor = document.getElementById('adjStatusFloor');
+  if(qtySection) qtySection.style.display = isBackroom ? 'block' : 'none';
+  if(btnBack) {
+    btnBack.style.background = isBackroom ? 'var(--green)' : 'var(--bg)';
+    btnBack.style.color = isBackroom ? '#fff' : 'var(--text2)';
+  }
+  if(btnFloor) {
+    btnFloor.style.background = !isBackroom ? 'var(--amber)' : 'var(--bg)';
+    btnFloor.style.color = !isBackroom ? '#fff' : 'var(--text2)';
+  }
+  // Store current status
+  window._adjStatus = status;
+};
+window._adjStatus = 'backroom';
+
+window.requireManager=function(cb){
+  if(currentStaff&&currentStaff.isManager){cb();return;}
+  const mgr=Object.values(STAFF).find(s=>s.isManager);
+  if(!mgr){toast('No manager account found');return;}
+  toast('Manager PIN required');
+  startPin(mgr._id,cb);
+};
+
+// Always asks for manager PIN — even if manager is already logged in
+window.requireManagerPin=function(cb){
+  const mgr=Object.values(STAFF).find(s=>s.isManager);
+  if(!mgr){toast('No manager account found');return;}
+  toast('Manager PIN required to access staff settings');
+  startPin(mgr._id,cb);
+};
+
+// ── STATS ─────────────────────────────────────────────────────────
+function renderStats(){
+  const prods = Object.values(PRODUCTS);
+  const total=prods.length, inBack=prods.filter(p=>p.backroom>0).length;
+  const floorOnly=prods.filter(p=>p.backroom===0).length, units=prods.reduce((a,p)=>a+p.backroom,0);
+  document.getElementById('statsRow').innerHTML=`
+    <div class="stat"><div class="stat-lbl">Total SKUs</div><div class="stat-val">${total}</div><div class="stat-sub">in system</div></div>
+    <div class="stat"><div class="stat-lbl">In backroom</div><div class="stat-val" style="color:var(--green)">${inBack}</div><div class="stat-sub">have stock</div></div>
+    <div class="stat"><div class="stat-lbl">Floor only</div><div class="stat-val" style="color:var(--amber)">${floorOnly}</div><div class="stat-sub">backroom empty</div></div>
+    <div class="stat"><div class="stat-lbl">Total units</div><div class="stat-val">${units}</div><div class="stat-sub">in backroom</div></div>`;
+}
+
+// ── INVENTORY ─────────────────────────────────────────────────────
+function renderInventory(){
+  renderStats();
+  document.getElementById('deptChips').innerHTML=['All',...DEPTS].map(d=>
+    `<button class="chip${curDept===d?' active':''}" onclick="setDept('${d}')">${d}</button>`).join('');
+  const prods=Object.values(PRODUCTS).filter(p=>{
+    const dOk=curDept==='All'||p.dept===curDept;
+    const q=srch.toLowerCase();
+    return dOk&&(!q||p.name.toLowerCase().includes(q)||p.upc.includes(q)||p.loc.toLowerCase().includes(q));
+  });
+  const tbody=document.getElementById('prodBody');
+  if(!prods.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text3)">No products match</td></tr>`;return;}
+  tbody.innerHTML=prods.map(p=>{
+    const th=p.photo
+      ?`<img src="${p.photo}" class="thumb" onclick="event.stopPropagation();openPhotoMo('${p._id}')" title="Click to update"/>`
+      :`<div class="thumb-ph" onclick="event.stopPropagation();openPhotoMo('${p._id}')" title="Add photo">📷</div>`;
+    const isIncomplete = !p.price || Number(p.price)===0 || !p.cost || Number(p.cost)===0;
+    const isDup = p.flagged || (p.name && p.name.startsWith('⚠ DUPLICATE:'));
+    const badge = isDup
+      ? `<span class="incomplete-badge" style="background:var(--amber-lt);color:var(--amber-txt)">⚠ Duplicate</span>`
+      : isIncomplete ? `<span class="incomplete-badge">⚠ Missing price/cost</span>` : '';
+    return`<tr class="${isDup?'row-duplicate':isIncomplete?'row-incomplete':''}" onclick="openAdjust('${p._id}')">
+      <td>${th}</td>
+      <td><span class="dot dot-${DCLS[p.dept]}"></span><strong>${p.name}</strong>${badge}</td>
+      <td><span class="badge badge-${DCLS[p.dept]}">${p.dept}</span></td>
+      <td><span class="loc-tag">${p.loc}</span></td>
+      <td class="${p.backroom>0?'qty-in':'qty-out'}">${p.backroom>0?p.backroom+' units':'floor only'}</td>
+      <td class="hide-m" style="font-family:monospace;font-size:11px;color:var(--text3)">${p.upc}</td>
+      <td class="hide-m" style="color:${isIncomplete?'var(--red)':'var(--text2)'};font-weight:${isIncomplete?700:400}">
+        ${isIncomplete?'⚠ Fill in':'$'+Number(p.cost||0).toFixed(2)}
+      </td>
+      <td><button class="btn" style="font-size:11px;padding:4px 10px" onclick="event.stopPropagation();openAdjust('${p._id}')">Adjust</button></td>
+    </tr>`;
+  }).join('');
+}
+window.setDept=function(d){curDept=d;renderInventory();};
+window.filterProds=function(){srch=document.getElementById('searchInput').value;renderInventory();};
+
+// ── ADJUST ────────────────────────────────────────────────────────
+window.openAdjust=function(id){
+  adjPid=id; window._adjPid=id;const p=PRODUCTS[id];
+  document.getElementById('adjTitle').textContent=p.name;
+  document.getElementById('adjBody').innerHTML=`
+    ${p.photo?`<img src="${p.photo}" style="width:100%;max-height:130px;object-fit:contain;border-radius:8px;border:1px solid var(--border);margin-bottom:14px"/>`:''}
+    <div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between">
+      <span style="font-size:13px;color:var(--text2)">Current backroom qty</span>
+      <span style="font-size:20px;font-weight:700;color:${p.backroom>0?'var(--green)':'var(--red)'}">${p.backroom} units</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div class="ff">
+        <label class="fl">Bay / Location</label>
+        <input class="fi" id="adj_loc" value="${p.loc}" placeholder="e.g. GR-A1 Bay 3"/>
+      </div>
+      <div class="ff">
+        <label class="fl">Department</label>
+        <select class="fi" id="adj_dept">
+          <option value="Grocery" ${p.dept==='Grocery'?'selected':''}>Grocery</option>
+          <option value="Frozen" ${p.dept==='Frozen'?'selected':''}>Frozen</option>
+          <option value="Dairy" ${p.dept==='Dairy'?'selected':''}>Dairy</option>
+          <option value="HBC" ${p.dept==='HBC'?'selected':''}>HBC</option>
+          <option value="GM" ${p.dept==='GM'?'selected':''}>GM</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div class="ff"><label class="fl">Retail price ($)</label><input class="fi" id="adj_price" type="number" min="0" step="0.01" value="${Number(p.price||0).toFixed(2)}"/></div>
+      <div class="ff"><label class="fl">Cost price ($)</label><input class="fi" id="adj_cost" type="number" min="0" step="0.01" value="${Number(p.cost||0).toFixed(2)}"/></div>
+    </div>
+    <!-- Backroom / Floor toggle -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:12px">
+      <button id="adjStatusBackroom" onclick="setAdjStatus('backroom')" style="padding:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);background:${p.backroom>0?'var(--green)':'var(--bg)'};color:${p.backroom>0?'#fff':'var(--text2)'}">
+        &#128230; In backroom
+      </button>
+      <button id="adjStatusFloor" onclick="setAdjStatus('floor')" style="padding:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);background:${p.backroom===0?'var(--amber)':'var(--bg)'};color:${p.backroom===0?'#fff':'var(--text2)'}">
+        &#128717; Floor only
+      </button>
+    </div>
+    <div id="adjQtySection" style="display:${p.backroom>0?'block':'none'}">
+      <div class="ff" style="margin-bottom:12px"><label class="fl">Adjustment type</label>
+        <select class="fi" id="adj_type"><option value="set">Set exact count</option><option value="add">Add units (+)</option><option value="remove">Remove units (−)</option></select></div>
+      <div class="ff" style="margin-bottom:12px"><label class="fl">Quantity in backroom</label>
+        <input class="fi" id="adj_qty" type="number" min="0" value="${p.backroom>0?p.backroom:1}"/></div>
+    </div>
+    <div class="ff"><label class="fl">Reason</label><input class="fi" id="adj_reason" placeholder="e.g. cycle count, worked to floor…"/></div>`;
+  document.getElementById('adjMo').classList.add('open');
+};
+window.closeMo=function(id){document.getElementById(id).classList.remove('open');};
+window.saveAdjust=async function(){
+  const p=PRODUCTS[adjPid];
+  const type=document.getElementById('adj_type').value;
+  const qty=parseInt(document.getElementById('adj_qty').value)||0;
+  const reason=document.getElementById('adj_reason').value||'manual adjust';
+  const newLoc=document.getElementById('adj_loc').value.trim()||p.loc;
+  const locChanged = newLoc !== p.loc;
+  const old=p.backroom;
+  let newQty=old;
+  const adjStatusEarly = window._adjStatus || (p.backroom > 0 ? 'backroom' : 'floor');
+  if(adjStatusEarly === 'floor') {
+    newQty = 0;
+  } else {
+    if(type==='set')newQty=qty;else if(type==='add')newQty=old+qty;else newQty=Math.max(0,old-qty);
+  }
+  const diff=newQty-old;
+  showLoading('Saving…');
+  // Save both qty and location in one update
+  const newPrice = parseFloat(document.getElementById('adj_price').value)||0;
+  const newCost  = parseFloat(document.getElementById('adj_cost').value)||0;
+  // If floor only selected, set backroom to 0 regardless of qty input
+  const adjStatus = window._adjStatus || (p.backroom > 0 ? 'backroom' : 'floor');
+  const finalQty = adjStatus === 'floor' ? 0 : newQty;
+  const newDept = document.getElementById('adj_dept').value;
+  const updates = {backroom:finalQty, price:newPrice, cost:newCost, dept:newDept};
+  if(locChanged) updates.loc = newLoc;
+  await updateProduct(adjPid, updates);
+  const logMsg = locChanged
+    ? p.name+' — '+reason+' (moved to '+newLoc+')'
+    : p.name+' — '+reason;
+  await addLog({who:currentStaff?currentStaff.name:'—',whoId:currentStaff?currentStaff._id:null,pid:adjPid,pname:p.name,action:'adjust',msg:logMsg,qty:Math.abs(diff),sign:diff>=0?'+':'-'});
+  hideLoading();closeMo('adjMo');
+  const msg = locChanged
+    ? 'Updated: '+p.name+' → '+newQty+' units, moved to '+newLoc
+    : 'Updated: '+p.name+' → '+newQty+' units';
+  toast(msg);
+};
+
+// ── PHOTO MODAL ───────────────────────────────────────────────────
+window.openPhotoMo=function(id){
+  photoPid=id;const p=PRODUCTS[id];
+  document.getElementById('photoMoTitle').textContent=p.name;
+  document.getElementById('photoMoBody').innerHTML=p.photo
+    ?`<img src="${p.photo}" style="width:100%;max-height:260px;object-fit:contain;border-radius:8px;border:1px solid var(--border)"/>
+       <div style="margin-top:12px;text-align:center"><button class="btn btn-red" style="font-size:12px;padding:6px 14px" onclick="doRmPhoto('${id}')">Remove photo</button></div>
+       <div style="margin-top:8px;text-align:center;font-size:11px;color:var(--text3)">Photo stored in Firebase — visible on all devices</div>`
+    :`<div style="text-align:center;padding:30px;color:var(--text3)"><div style="font-size:48px;margin-bottom:12px">📷</div><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">No photo yet</div><div style="font-size:12px">Tap "Change photo" — it will sync to all devices automatically</div></div>`;
+  document.getElementById('photoMo').classList.add('open');
+};
+window.saveModalPhoto=async function(input){
+  if(!input.files[0])return;
+  showLoading('Uploading photo to Firebase…');
+  const url=await uploadPhoto(input.files[0],photoPid);
+  if(url){
+    await updateProduct(photoPid,{photo:url});
+    toast('Photo saved and synced to all devices!');
+  } else {
+    // Fallback: store as base64 in Firestore (works without Storage/Blaze)
+    const data = await fileToBase64(input.files[0]);
+    await updateProduct(photoPid,{photo:data});
+    toast('Photo saved! (Storage upgrade needed for best performance)');
+  }
+  hideLoading();closeMo('photoMo');input.value='';
+};
+window.doRmPhoto=async function(id){
+  showLoading('Removing…');
+  await updateProduct(id,{photo:null});
+  hideLoading();closeMo('photoMo');toast('Photo removed');
+};
+
+function fileToBase64(file){
+  return new Promise(resolve=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height,mx=500;
+        if(w>mx){h=Math.round(h*mx/w);w=mx;}if(h>mx){w=Math.round(w*mx/h);h=mx;}
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg',0.72));
+      };img.src=e.target.result;
+    };r.readAsDataURL(file);
+  });
+}
+
+// ── SCAN ──────────────────────────────────────────────────────────
+window.setMode=function(m){
+  scanMode=m;
+  document.getElementById('modeInBtn').classList.toggle('active',m==='in');
+  document.getElementById('modeOutBtn').classList.toggle('active',m==='out');
+  clearProdArea();
+};
+// ── REAL BARCODE SCANNER (Safari iPhone + Android Chrome) ─────────
+let cameraStream = null;
+let scanInterval = null;
+let scanning = false;
+let zxingLoaded = false;
+let codeReader = null;
+
+window.startCamera = async function() {
+  if (!currentStaff) { toast('Please log in first'); window.switchUser(); return; }
+
+  const btn = document.getElementById('scanMainBtn');
+  if (btn) { btn.textContent = 'Opening camera…'; btn.disabled = true; }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    cameraStream = stream;
+    const video = document.getElementById('scanVideo');
+    video.srcObject = stream;
+    await video.play();
+    document.getElementById('cameraView').style.display = 'block';
+    document.getElementById('scanTrigger').style.display = 'none';
+    scanning = true;
+
+    // Try native BarcodeDetector first (Android Chrome)
+    if ('BarcodeDetector' in window) {
+      try {
+        const detector = new BarcodeDetector({ formats: ['ean_13','upc_a','ean_8','code_128','upc_e','code_39'] });
+        scanInterval = setInterval(async () => {
+          if (!scanning || video.readyState < 2) return;
+          try {
+            const results = await detector.detect(video);
+            if (results.length > 0) onBarcodeFound(results[0].rawValue);
+          } catch(e) {}
+        }, 250);
+        return;
+      } catch(e) {}
+    }
+
+    // Fallback: ZXing (works on Safari iPhone)
+    loadZXing(video);
+
+  } catch(e) {
+    if (btn) { btn.innerHTML = '&#128247; Scan barcode'; btn.disabled = false; }
+    if (e.name === 'NotAllowedError') {
+      document.getElementById('productArea').innerHTML = `
+        <div style="background:var(--amber-lt);border:1px solid var(--amber);border-radius:var(--radius);padding:16px;margin-bottom:14px">
+          <div style="font-size:14px;font-weight:600;color:var(--amber-txt);margin-bottom:8px">&#9888; Camera permission needed</div>
+          <div style="font-size:12px;color:var(--amber-txt);line-height:2">
+            <strong>iPhone Safari:</strong> Settings app &#8594; Safari &#8594; Camera &#8594; Allow<br/>
+            <strong>Then:</strong> Close Safari fully and reopen the app URL
+          </div>
+        </div>`;
+    } else {
+      toast('Camera unavailable — type UPC manually below');
+    }
+  }
+};
+
+function loadZXing(video) {
+  // Use html5-qrcode — works reliably on iPhone Safari and Android Chrome
+  if (window.Html5Qrcode) { startHtml5QrScan(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+  s.onload = () => startHtml5QrScan();
+  s.onerror = () => { toast('Scanner unavailable — type UPC manually'); stopCamera(); };
+  document.head.appendChild(s);
+}
+
+let html5QrScanner = null;
+
+function startHtml5QrScan() {
+  if (!scanning) return;
+  // Stop existing video stream since html5-qrcode manages its own
+  if (cameraStream) { cameraStream.getTracks().forEach(t=>t.stop()); cameraStream = null; }
+  const video = document.getElementById('scanVideo');
+  if (video) video.style.display = 'none';
+
+  // Create scanner container inside cameraView
+  const container = document.getElementById('cameraView');
+  let scanDiv = document.getElementById('html5qr-div');
+  if (!scanDiv) {
+    scanDiv = document.createElement('div');
+    scanDiv.id = 'html5qr-div';
+    scanDiv.style.cssText = 'width:100%;border-radius:var(--radius);overflow:hidden';
+    container.insertBefore(scanDiv, container.firstChild);
+  }
+
+  html5QrScanner = new Html5Qrcode('html5qr-div');
+  html5QrScanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 250, height: 120 }, aspectRatio: 1.5,
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+      ]
+    },
+    (decodedText) => { if(scanning) onBarcodeFound(decodedText); },
+    () => {}
+  ).catch(err => {
+    console.error('Html5Qrcode error:', err);
+    toast('Camera error — type UPC manually');
+    stopCamera();
+  });
+}
+
+
+function onBarcodeFound(raw) {
+  if (!scanning) return;
+  const upc = raw.replace(/\D/g, '');
+  if (upc.length < 8) return;
+  if (navigator.vibrate) navigator.vibrate(80);
+  const view = document.getElementById('cameraView');
+  if (view) { view.style.outline = '3px solid var(--green)'; setTimeout(()=>{ if(view) view.style.outline=''; }, 500); }
+  stopCamera();
+  document.getElementById('upcInput').value = upc;
+  lookupUPC();
+}
+
+window.stopCamera = function() {
+  scanning = false;
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  if (codeReader) { try { codeReader.reset(); } catch(e){} codeReader = null; }
+  // Stop html5-qrcode scanner
+  if (html5QrScanner) {
+    try { html5QrScanner.stop().then(()=>{ html5QrScanner.clear(); html5QrScanner=null; }).catch(()=>{}); } catch(e){}
+    html5QrScanner = null;
+  }
+  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+  const video = document.getElementById('scanVideo');
+  if (video) video.srcObject = null;
+  const cv = document.getElementById('cameraView');
+  if (cv) cv.style.display = 'none';
+  const st = document.getElementById('scanTrigger');
+  if (st) st.style.display = 'block';
+  const btn = document.getElementById('scanMainBtn');
+  if (btn) { btn.innerHTML = '&#128247; Scan barcode'; btn.disabled = false; }
+};
+
+window.demoScan = function() {
+  const upc = DEMO_UPCS[demoIdx++ % DEMO_UPCS.length];
+  document.getElementById('upcInput').value = upc; lookupUPC();
+};
+window.goToAddWithUPC = function(upc, archived) {
+  nav('add', document.querySelectorAll('.nav-link')[3]);
+  setTimeout(() => {
+    const set = (id, val) => { const el=document.getElementById(id); if(el&&val!==undefined) el.value=val; };
+    set('f_upc', upc);
+    if(archived) {
+      set('f_name', archived.name);
+      set('f_loc',  archived.loc);
+      set('f_cost', archived.cost);
+      if(archived.dept) { const d=document.getElementById('f_dept'); if(d) d.value=archived.dept; }
+      toast('All previous data restored — just update the quantity');
+    } else {
+      toast('UPC pre-filled — complete the product details');
+    }
+    const upcField = document.getElementById('f_upc');
+    if(upcField) {
+      upcField.style.borderColor='var(--green)'; upcField.style.background='var(--green-lt)';
+      setTimeout(()=>{ upcField.style.borderColor=''; upcField.style.background=''; }, 2000);
+    }
+  }, 200);
+};
+
+window.lookupUPC=function(){
+  if(!currentStaff){toast('Please log in first');window.switchUser();return;}
+  const upc=document.getElementById('upcInput').value.trim();
+  if(!upc){toast('Enter or scan a UPC first');return;}
+  const p=Object.values(PRODUCTS).find(x=>x.upc===upc);
+  if(!p){
+    // Check archive for previously deleted products
+    document.getElementById('productArea').innerHTML=`
+      <div style="background:var(--amber-lt);border:1px solid var(--amber);border-radius:var(--radius);padding:14px;margin-bottom:14px;text-align:center">
+        <div style="font-size:14px;font-weight:600;color:var(--amber-txt);margin-bottom:6px">&#8987; Checking archive…</div>
+        <div style="font-size:12px;color:var(--amber-txt)">UPC: ${upc}</div>
+      </div>`;
+    if(window._lookupArchive) {
+      window._lookupArchive(upc).then(archived => {
+        if(archived) {
+          document.getElementById('productArea').innerHTML=`
+            <div style="background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:var(--radius);padding:14px;margin-bottom:14px">
+              <div style="font-size:13px;font-weight:700;color:var(--blue-txt);margin-bottom:8px">&#128190; Previously in system — data restored</div>
+              <div style="font-size:12px;color:var(--text2);line-height:2">
+                <strong>Name:</strong> ${archived.name}<br/>
+                <strong>Dept:</strong> ${archived.dept} &nbsp; <strong>Location:</strong> ${archived.loc}<br/>
+                <strong>Price:</strong> $${Number(archived.price||0).toFixed(2)} &nbsp; <strong>Cost:</strong> $${Number(archived.cost||0).toFixed(2)}
+              </div>
+              <button class="btn btn-blue" style="margin-top:10px;width:100%;font-size:13px;padding:8px" onclick="goToAddWithUPC('${upc}',${JSON.stringify(archived).replace(/'/g,'&apos;')})">&#43; Add back to inventory →</button>
+            </div>`;
+        } else {
+          document.getElementById('productArea').innerHTML=`
+            <div style="background:var(--amber-lt);border:1px solid var(--amber);border-radius:var(--radius);padding:14px;margin-bottom:14px;text-align:center">
+              <div style="font-size:14px;font-weight:600;color:var(--amber-txt);margin-bottom:6px">&#9888; Not in system</div>
+              <div style="font-size:12px;color:var(--amber-txt);margin-bottom:12px">UPC: ${upc}</div>
+              <button class="btn btn-blue" style="font-size:12px;padding:6px 14px" onclick="goToAddWithUPC('${upc}')">Add this product →</button>
+            </div>`;
+        }
+      });
+    }
+    return;
+  }
+  currentProd=p;
+  document.getElementById('productArea').innerHTML=`
+    <div class="product-found">
+      <div class="pf-hdr">
+        ${p.photo?`<img src="${p.photo}" class="pf-photo"/>`:`<div class="pf-photo-ph">📦</div>`}
+        <div>
+          <div class="pf-name">${p.name}</div>
+          <div class="pf-loc">■ ${p.loc}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px">Backroom now: <strong style="color:${p.backroom>0?'var(--green)':'var(--red)'}">${p.backroom} units</strong></div>
+        </div>
+      </div>
+      <div class="pf-body">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:${scanMode==='in'?'var(--green)':'var(--red)'};margin-bottom:10px">
+          ${scanMode==='in'?'↑ Adding to backroom':'↓ Removing from backroom'}
+        </div>
+        <div class="qty-wrap">
+          <div class="qty-step">
+            <button class="qs-btn" onclick="stepQ(-1)">−</button>
+            <input class="qty-num" type="number" id="qtyIn" value="1" min="1" inputmode="numeric"/>
+            <button class="qs-btn" onclick="stepQ(1)">+</button>
+          </div>
+          <div style="font-size:12px;color:var(--text2)">units</div>
+        </div>
+        <button class="confirm-btn ${scanMode}" onclick="confirmScan()">
+          ${scanMode==='in'?'↑ Confirm STOCK IN':'↓ Confirm STOCK OUT'}
+        </button>
+      </div>
+    </div>`;
+};
+window.stepQ=function(d){const i=document.getElementById('qtyIn');if(i)i.value=Math.max(1,(parseInt(i.value)||1)+d);};
+window.confirmScan=async function(){
+  if(!currentProd)return;
+  const qty=parseInt(document.getElementById('qtyIn').value)||1;
+  const p=currentProd;const isIn=scanMode==='in';
+  if(!isIn&&qty>p.backroom){toast('Only '+p.backroom+' units in backroom');return;}
+  const newQty=isIn?p.backroom+qty:Math.max(0,p.backroom-qty);
+  showLoading('Saving to Firebase…');
+  await updateProduct(p._id,{backroom:newQty});
+  await addLog({who:currentStaff.name,whoId:currentStaff._id,pid:p._id,pname:p.name,action:isIn?'stock_in':'stock_out',msg:(isIn?'Stocked in: ':'Worked out: ')+p.name,qty,sign:isIn?'+':'-',loc:p.loc});
+  hideLoading();
+  scanSession.unshift({pid:p._id,pname:p.name,photo:p.photo,qty,sign:isIn?'+':'-',time:nowTime()});
+  showFlash(isIn?'↑':'↓',isIn?'+'+qty+' units stocked in':'−'+qty+' units worked out',p.name+' · '+p.loc,isIn?'var(--green)':'var(--red)');
+  document.getElementById('upcInput').value='';clearProdArea();renderSessHist();
+};
+function clearProdArea(){document.getElementById('productArea').innerHTML='';currentProd=null;}
+function renderSessHist(){
+  const h=document.getElementById('scanHist');if(!scanSession.length){h.style.display='none';return;}
+  h.style.display='block';document.getElementById('sessCount').textContent=scanSession.length+' scans';
+  document.getElementById('scanHistList').innerHTML=scanSession.slice(0,10).map(e=>{
+    const th=e.photo?`<img src="${e.photo}" class="sh-thumb"/>`:`<div class="sh-thumb-ph">📦</div>`;
+    return`<div class="sh-item">${th}<span class="sh-name">${e.pname}</span><span class="${e.sign==='+'?'sh-in':'sh-out'}">${e.sign}${e.qty}</span><span style="font-size:10px;color:var(--text3)">${e.time}</span></div>`;
+  }).join('');
+}
+
+// ── STAFF ACTIVITY ────────────────────────────────────────────────
+function renderStaffPage(){
+  const sel=document.getElementById('staffFilter');
+  sel.innerHTML='<option value="">All staff</option>'+Object.values(STAFF).map(s=>`<option value="${s._id}">${s.name}</option>`).join('');
+  const fw=sel.value;
+  const entries=LOGS.filter(e=>e.action&&e.action!=='adjust'&&(!fw||e.whoId===fw));
+  document.getElementById('staffLogList').innerHTML=entries.length
+    ?entries.map(e=>`<div class="log-item"><div class="ld ${e.sign==='+'?'pos':'neg'}"></div><div class="lm">${e.msg}</div><div class="lw">${e.who||'—'}</div><div class="lt">${e.time||''}</div><div class="lq ${e.sign==='+'?'pos':'neg'}">${e.sign}${e.qty}</div></div>`).join('')
+    :'<div class="empty">No activity recorded yet</div>';
+}
+
+// ── FULL LOG ──────────────────────────────────────────────────────
+function renderLog(){
+  const sf=document.getElementById('logStaff');
+  sf.innerHTML='<option value="">All staff</option>'+Object.values(STAFF).map(s=>`<option value="${s._id}">${s.name}</option>`).join('');
+  const fw=sf.value,tw=document.getElementById('logType').value;
+  const entries=LOGS.filter(e=>(!tw||e.sign===tw)&&(!fw||e.whoId===fw));
+  document.getElementById('logCount').textContent=entries.length+' events — live from Firebase';
+  document.getElementById('logList').innerHTML=entries.length
+    ?entries.map(e=>`<div class="log-item"><div class="ld ${e.sign==='+'?'pos':e.sign==='-'?'neg':'info'}"></div><div class="lm">${e.msg}</div><div class="lw">${e.who||'—'}</div><div class="lt">${e.time||''}</div><div class="lq ${e.sign==='+'?'pos':'neg'}">${e.sign||''}${e.qty||''}</div></div>`).join('')
+    :'<div class="empty">No entries yet</div>';
+}
+
+// ── ADD PRODUCT ───────────────────────────────────────────────────
+window.previewAddPhoto=function(input){
+  if(!input.files[0])return;
+  addPhotoFile=input.files[0];
+  const r=new FileReader();
+  r.onload=e=>{
+    addPhotoData=e.target.result;
+    document.getElementById('addPhotoEmpty').style.display='none';
+    const p=document.getElementById('addPhotoPreview');p.src=addPhotoData;p.style.display='block';
+    document.getElementById('clearPhotoBtn').style.display='inline-block';
+  };r.readAsDataURL(addPhotoFile);
+};
+window.clearAddPhoto=function(){
+  addPhotoData=null;addPhotoFile=null;
+  document.getElementById('addPhotoEmpty').style.display='block';
+  document.getElementById('addPhotoPreview').style.display='none';
+  document.getElementById('addPhotoInput').value='';
+  document.getElementById('clearPhotoBtn').style.display='none';
+};
+window.saveProduct=async function(){
+  const name=document.getElementById('f_name').value.trim();
+  const upc=document.getElementById('f_upc').value.trim();
+  const dept=document.getElementById('f_dept').value;
+  const loc=document.getElementById('f_loc').value.trim();
+  const qty=parseInt(document.getElementById('f_qty').value)||0;
+  const cost=parseFloat(document.getElementById('f_cost').value)||0;
+  if(!name||!upc||!dept||!loc){toast('Fill in name, UPC, department, and location');return;}
+  if(Object.values(PRODUCTS).find(p=>p.upc===upc)){toast('UPC already in system');return;}
+  
+  showLoading('Saving product…');
+  
+  try {
+    // Step 1: Save product data first (fast)
+    const docRef = await Promise.race([
+      addProduct({upc,name,dept,loc,backroom:qty,cost,photo:null}),
+      new Promise((_,reject) => setTimeout(() => reject(new Error('timeout')), 10000))
+    ]);
+    
+    hideLoading();
+    toast('Product saved! '+(addPhotoFile?'Uploading photo…':''));
+    
+    // Step 2: Upload photo separately (doesn't block UI)
+    if(addPhotoFile){
+      try {
+        showLoading('Uploading photo… (tap anywhere to skip)');
+        document.getElementById('loadingOverlay').onclick = () => { hideLoading(); };
+        
+        // Compress to base64 and save to Firestore (no Storage needed)
+        const photoData = await Promise.race([
+          fileToBase64(addPhotoFile),
+          new Promise((_,reject) => setTimeout(() => reject(new Error('timeout')), 15000))
+        ]);
+        await updateProduct(docRef.id, {photo: photoData});
+        hideLoading();
+        toast('Product and photo saved!');
+      } catch(photoErr) {
+        hideLoading();
+        console.warn('Photo upload failed:', photoErr);
+        toast('Product saved — photo failed, try adding it later from inventory');
+      }
+    }
+    
+    // Step 3: Log it
+    try {
+      await addLog({who:currentStaff?currentStaff.name:'—',whoId:currentStaff?currentStaff._id:null,pid:docRef.id,pname:name,action:'add',msg:'Added: '+name,qty,sign:'+'});
+    } catch(e) { console.warn('Log failed:', e); }
+    
+    clearAddForm();
+    clearAddPhoto();
+    
+  } catch(e) {
+    hideLoading();
+    console.error('Save failed:', e);
+    toast('Save failed — check your internet connection and try again');
+  }
+};
+window.clearAddForm=function(){['f_name','f_upc','f_loc','f_cost'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_dept').value='';document.getElementById('f_qty').value=0;};
+
+// ── MANAGE STAFF ──────────────────────────────────────────────────
+window.pickEmoji=function(el){
+  pickedEmoji=el.dataset.e||el.innerHTML;
+  document.querySelectorAll('.emoji-opt').forEach(e=>e.style.borderColor='var(--border)');
+  el.style.borderColor='var(--blue-mid)';
+};
+window.addStaff=async function(){
+  const name=document.getElementById('s_name').value.trim();
+  const role=document.getElementById('s_role').value.trim()||'Staff';
+  const pin=document.getElementById('s_pin').value.trim();
+  if(!name){toast('Enter a name');return;}
+  if(!pin||pin.length!==6||!/^\d{6}$/.test(pin)){toast('PIN must be exactly 6 digits');return;}
+  showLoading('Saving to Firebase…');
+  await addStaffDoc({name,role,emoji:pickedEmoji,pinHash:pin,isManager:false});
+  hideLoading();
+  document.getElementById('s_name').value='';document.getElementById('s_role').value='';document.getElementById('s_pin').value='';
+  toast(name+' added — can log in on any device immediately!');
+};
+window.removeStaff=async function(id){
+  if(!confirm('Remove this staff member?'))return;
+  showLoading('Removing…');
+  await deleteStaffDoc(id);
+  hideLoading();toast('Staff member removed');
+  if(currentStaff&&currentStaff._id===id){currentStaff=null;updateWhoBadge();}
+};
+function renderTeam(){
+  document.getElementById('staffGrid').innerHTML=Object.values(STAFF).map(s=>{
+    const count=LOGS.filter(e=>e.whoId===s._id).length;
+    return`<div class="staff-card">
+      <div class="staff-avatar">${s.emoji}</div>
+      <div class="staff-name">${s.name}${s.isManager?' 🔒':''}</div>
+      <div class="staff-role">${s.role}</div>
+      <div class="staff-pin-lbl"><span class="${s.pinHash?'pin-set':'pin-unset'}">${s.pinHash?'✓ PIN set':'⚠ No PIN'}</span></div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px">${count} transactions total</div>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button class="btn" style="flex:1;font-size:11px;padding:5px 8px" onclick="openChangePinMo('${s._id}')">Change PIN</button>
+        ${!s.isManager?`<button class="btn btn-red" style="font-size:11px;padding:5px 8px" onclick="removeStaff('${s._id}')">✕</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+window.openChangePinMo=function(id){
+  changePinForId=id;
+  const s=STAFF[id];
+  document.getElementById('pinChangeMoTitle').textContent='Change PIN — '+s.name;
+  document.getElementById('newPin1').value='';document.getElementById('newPin2').value='';
+  document.getElementById('pinChangeMo').classList.add('open');
+};
+window.saveNewPin=async function(){
+  const p1=document.getElementById('newPin1').value.trim();
+  const p2=document.getElementById('newPin2').value.trim();
+  if(!p1||p1.length!==6||!/^\d{6}$/.test(p1)){toast('PIN must be exactly 6 digits');return;}
+  if(p1!==p2){toast('PINs do not match');return;}
+  showLoading('Saving PIN to Firebase…');
+  await updateStaff(changePinForId,{pinHash:p1});
+  hideLoading();closeMo('pinChangeMo');
+  toast('PIN updated — works on all devices immediately');
+};
+
+// ── BULK IMPORT ────────────────────────────────────────────────────
+window.showImportPanel = function() {
+  document.getElementById('adjMo').classList.remove('open');
+  let mo = document.getElementById('importMo');
+  if (!mo) {
+    mo = document.createElement('div');
+    mo.className = 'mo';
+    mo.id = 'importMo';
+    mo.innerHTML = `
+      <div class="mo-box" style="width:580px;max-height:88vh">
+        <div class="mo-hdr">
+          <span class="mo-title">Bulk import — Phaser QOH Report</span>
+          <button class="mo-x" onclick="closeMo('importMo')">&#215;</button>
+        </div>
+        <div class="mo-body">
+
+          <!-- CSV UPLOAD ONLY -->
+          <div id="panelCsv">
+
+            <div style="background:var(--green-lt);border:1px solid var(--green);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--green-txt)">
+              <strong>Upload Phaser QOH batch</strong> — CSV, Excel (.xlsx), or PDF supported.<br/>
+              Columns auto-detected · Existing items → price, cost &amp; qty updated.
+            </div>
+
+            <div class="ff" style="margin-bottom:12px">
+              <label class="fl">Default location for new items</label>
+              <input class="fi" id="importLocation" value="" placeholder="e.g. C 11 A, GR-A1 Bay 3 (required)"/>
+              <span style="font-size:11px;color:var(--text3);margin-top:3px">New products from this batch placed here · Existing products keep their current location</span>
+            </div>
+
+            <div style="border:2px dashed var(--border-mid);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;background:var(--bg);margin-bottom:10px" onclick="document.getElementById('batchCsvInput').click()" id="csvDropZone">
+              <div style="font-size:32px;color:var(--text3);margin-bottom:8px">&#128196;</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px">Click to select file</div>
+              <div style="font-size:11px;color:var(--text2)">Accepts: <strong>CSV</strong> &nbsp;·&nbsp; <strong>Excel (.xlsx)</strong> &nbsp;·&nbsp; <strong>PDF</strong></div>
+            </div>
+            <input type="file" id="batchCsvInput" accept=".csv,.txt,.xlsx,.xls,.pdf" style="display:none" onchange="loadBatchCSV(this)"/>
+            <div id="csvPreview" style="font-size:12px;color:var(--text2);margin-bottom:10px"></div>
+          </div>
+
+          <!-- STATS -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+            <div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px;text-align:center">
+              <div style="font-size:20px;font-weight:700;color:var(--blue-mid)" id="importTotal">—</div>
+              <div style="font-size:10px;color:var(--text2)">Total items</div>
+            </div>
+            <div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px;text-align:center">
+              <div style="font-size:20px;font-weight:700;color:var(--green)" id="importNew">—</div>
+              <div style="font-size:10px;color:var(--text2)">New products</div>
+            </div>
+            <div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px;text-align:center">
+              <div style="font-size:20px;font-weight:700;color:var(--blue-mid)" id="importUpdate">—</div>
+              <div style="font-size:10px;color:var(--text2)">Will update</div>
+            </div>
+            <div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px;text-align:center">
+              <div style="font-size:20px;font-weight:700;color:var(--red)" id="importIncomplete">—</div>
+              <div style="font-size:10px;color:var(--text2)">Missing price</div>
+            </div>
+          </div>
+
+          <!-- PROGRESS -->
+          <div id="importProgress" style="display:none;margin-bottom:10px">
+            <div style="background:var(--border);border-radius:999px;height:8px;overflow:hidden">
+              <div id="importBar" style="height:100%;background:var(--green);width:0%;transition:width 0.2s;border-radius:999px"></div>
+            </div>
+            <div style="font-size:11px;color:var(--text2);margin-top:5px;text-align:center" id="importStatus">Preparing…</div>
+          </div>
+          <div id="importLog" style="max-height:160px;overflow-y:auto;font-size:11px;color:var(--text2);background:var(--bg);border-radius:var(--radius-sm);padding:8px;font-family:monospace;display:none"></div>
+        </div>
+        <div class="mo-foot">
+          <button class="btn" onclick="closeMo('importMo')">Cancel</button>
+          <button class="btn btn-blue" id="importStartBtn" onclick="window.startBulkImport()">&#8679; Start import</button>
+        </div>
+      </div>`;
+    document.body.appendChild(mo);
+  }
+  // Full reset every open
+  const progEl = document.getElementById('importProgress');
+  const logEl  = document.getElementById('importLog');
+  const barEl  = document.getElementById('importBar');
+  const statEl = document.getElementById('importStatus');
+  const btnEl  = document.getElementById('importStartBtn');
+  const prevEl = document.getElementById('csvPreview');
+  const dropEl = document.getElementById('csvDropZone');
+  if(progEl) progEl.style.display='none';
+  if(logEl)  { logEl.style.display='none'; logEl.innerHTML=''; }
+  if(barEl)  barEl.style.width='0%';
+  if(statEl) statEl.textContent='Preparing…';
+  if(btnEl)  { btnEl.disabled=false; btnEl.textContent='↑ Start import'; }
+  if(prevEl) prevEl.innerHTML='';
+  if(dropEl) {
+    dropEl.style.borderColor='';dropEl.style.background='';
+    dropEl.innerHTML='<div style="font-size:32px;color:var(--text3);margin-bottom:8px">&#128196;</div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px">Click to select CSV file</div><div style="font-size:11px;color:var(--text2)">Export from Phaser · UPC, Description, QOH, Price, Cost columns</div>';
+  }
+  currentImportTab = 'csv';
+  // Don't reset currentBatchProducts here — rerunMayBatch may have set it
+  // Only reset stats if no file is loaded
+  if(!currentBatchProducts && !window._currentBatchProducts) {
+    ['importTotal','importNew','importUpdate','importIncomplete'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.textContent='—';
+    });
+  }
+  mo.classList.add('open');
+};
+
+let currentBatchProducts = null;
+let currentImportTab = 'hardcoded';
+
+// switchImportTab removed - CSV only mode
+
+window.loadBatchCSV = function(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const log = document.getElementById('csvPreview');
+  if(log) log.innerHTML = '<div style="color:var(--text2);font-size:12px">&#8987; Reading file…</div>';
+
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  // Excel file
+  if((ext==='xlsx'||ext==='xls') && window.XLSX) {
+    const reader2 = new FileReader();
+    reader2.onload = e2 => {
+      try {
+        const wb = XLSX.read(e2.target.result, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, {header:1});
+        parseSheetData(data, file.name);
+      } catch(err) {
+        if(log) log.innerHTML = '<div style="color:var(--red)">Error reading Excel: '+err.message+'</div>';
+      }
+    };
+    reader2.readAsArrayBuffer(file);
+    return;
+  }
+
+  // PDF file — use PDF.js for text extraction
+  if(ext==='pdf') {
+    if(log) log.innerHTML = '<div style="color:var(--amber-txt);font-size:12px">&#128196; Reading PDF — this may take a moment…</div>';
+    
+    // Load PDF.js if not already loaded
+    function extractWithPDFJS(arrayBuffer) {
+      const loadingTask = pdfjsLib.getDocument({data: arrayBuffer});
+      loadingTask.promise.then(function(pdf) {
+        const numPages = pdf.numPages;
+        let allLines = [];
+        let pagesProcessed = 0;
+        
+        for(let pageNum = 1; pageNum <= numPages; pageNum++) {
+          pdf.getPage(pageNum).then(function(page) {
+            page.getTextContent().then(function(textContent) {
+              textContent.items.forEach(function(item) {
+                if(item.str && item.str.trim()) allLines.push(item.str.trim());
+              });
+              pagesProcessed++;
+              if(pagesProcessed === numPages) {
+                parsePDFLines(allLines, file.name);
+              }
+            });
+          });
+        }
+      }).catch(function(err) {
+        if(log) log.innerHTML = '<div style="color:var(--red);font-size:12px">PDF read error: ' + err.message + '<br/>Please export from Phaser as CSV or Excel instead.</div>';
+      });
+    }
+    
+    const reader3 = new FileReader();
+    reader3.onload = e3 => {
+      if(window.pdfjsLib) {
+        extractWithPDFJS(e3.target.result);
+      } else {
+        // Load PDF.js then extract
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+        s.onload = function() {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+          extractWithPDFJS(e3.target.result);
+        };
+        s.onerror = function() {
+          if(log) log.innerHTML = '<div style="color:var(--red);font-size:12px">PDF library failed to load.<br/>Please export from Phaser as <strong>CSV or Excel</strong> — works better than PDF.</div>';
+        };
+        document.head.appendChild(s);
+      }
+    };
+    reader3.readAsArrayBuffer(file);
+    return;
+  }
+
+  // CSV / TXT
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').filter(l=>l.trim());
+    const products = [];
+    const seenUPCs = {};
+    let headerRow = null;
+
+    lines.forEach((line,i) => {
+      const cols = line.split(',').map(c=>c.replace(/^"|"$/g,'').trim());
+
+      // Detect header row
+      if(i===0 || (cols[0].toLowerCase().includes('upc') || cols[0].toLowerCase().includes('category'))) {
+        headerRow = cols.map(c=>c.toLowerCase());
+        return;
+      }
+      if(cols.length < 2) return;
+
+      let upc='', name='', price=0, cost=0, qty=1;
+
+      if(headerRow) {
+        // Map by header names - handles any Phaser export format
+        const h = headerRow;
+        const upcIdx   = h.findIndex(c=>c.includes('upc'));
+        const nameIdx  = h.findIndex(c=>c.includes('description')||c.includes('name'));
+        const priceIdx = h.findIndex(c=>c.includes('price') && !c.includes('extended') && !c.includes('cost'));
+        const costIdx  = h.findIndex(c=>(c.includes('current cost')||c.includes('cost')) && !c.includes('extended'));
+        const qohIdx   = h.findIndex(c=>c.includes('qoh')||c.includes('quantity on hand'));
+        const qtyIdx   = h.findIndex(c=>c==='qty'||c==='quantity');
+
+        upc   = upcIdx  >= 0 ? cols[upcIdx].replace(/[^0-9]/g,'')  : cols[0].replace(/[^0-9]/g,'');
+        name  = nameIdx >= 0 ? cols[nameIdx] : cols[1]||'Unknown';
+        price = priceIdx>= 0 ? parseFloat(cols[priceIdx])||0        : parseFloat(cols[2])||0;
+        cost  = costIdx >= 0 ? parseFloat(cols[costIdx])||0         : parseFloat(cols[3])||0;
+        // Prefer QOH over Qty column
+        qty   = qohIdx  >= 0 ? Math.round(parseFloat(String(cols[qohIdx]||'').replace(/,/g,'')))||1
+              : qtyIdx  >= 0 ? Math.round(parseFloat(String(cols[qtyIdx]||'').replace(/,/g,'')))||1
+              : 1;
+      } else {
+        // No header - assume: UPC, Name, Price, Cost, QOH
+        upc   = cols[0].replace(/[^0-9]/g,'');
+        name  = cols[1]||'Unknown';
+        price = parseFloat(cols[2])||0;
+        cost  = parseFloat(cols[3])||0;
+        qty   = Math.round(parseFloat(String(cols[4]||'').replace(/,/g,'')))||1;
+      }
+
+      if(upc.length >= 6) {
+        const isDuplicate = seenUPCs[upc] !== undefined;
+        seenUPCs[upc] = (seenUPCs[upc]||0) + 1;
+        products.push({upc, name, dept:'GM', price, cost, qty, isDuplicate});
+      }
+    });
+    finishLoad(products, file.name);
+  };
+  reader.readAsText(file);
+  input.value='';
+};
+
+function parseSheetData(data, filename) {
+  const products = [];
+  const seenUPCs = {};
+  if(!data || data.length < 2) return;
+  const h = (data[0]||[]).map(x=>String(x||'').toLowerCase().trim());
+  const upcIdx   = h.findIndex(x=>x.includes('upc')||x.includes('category'));
+  const nameIdx  = h.findIndex(x=>x.includes('description')||x.includes('name'));
+  const priceIdx = h.findIndex(x=>x.includes('price')&&!x.includes('extended')&&!x.includes('cost'));
+  const costIdx  = h.findIndex(x=>(x.includes('current cost')||x==='cost')&&!x.includes('extended'));
+  const qohIdx   = h.findIndex(x=>x.includes('qoh')||x.includes('quantity on hand'));
+  const qtyIdx   = h.findIndex(x=>x==='qty'||x==='quantity');
+
+  for(let i=1;i<data.length;i++){
+    const r=data[i];
+    const upc=String(r[upcIdx]||r[0]||'').replace(/[^0-9]/g,'');
+    const name=String(r[nameIdx]||r[1]||'').trim();
+    const price=parseFloat(r[priceIdx>=0?priceIdx:2])||0;
+    const cost=parseFloat(r[costIdx>=0?costIdx:3])||0;
+    const qty=Math.round(parseFloat(String(r[qohIdx>=0?qohIdx:qtyIdx>=0?qtyIdx:4]||'').replace(/,/g,'')))||1;
+    if(upc.length>=6&&name){
+      const isDup=seenUPCs[upc]!==undefined;
+      seenUPCs[upc]=(seenUPCs[upc]||0)+1;
+      products.push({upc,name,dept:'GM',price,cost,qty,isDuplicate:isDup});
+    }
+  }
+  finishLoad(products, filename);
+}
+
+function parsePDFLines(lines, filename) {
+  const products = [];
+  const seenUPCs = {};
+  let i = 0;
+  while(i < lines.length) {
+    const line = String(lines[i]).trim();
+    const upcMatch = line.match(/^(\d{8,13})$/) || line.match(/^(\d{8,13})\s/);
+    if(upcMatch) {
+      const upc = upcMatch[1].replace(/[^0-9]/g,'');
+      let name='', price=0, cost=0, qty=1;
+      for(let j=i+1; j<Math.min(i+10,lines.length); j++) {
+        const next = String(lines[j]).trim();
+        if(!name && next.length>2 && !/^\d+\.?\d*$/.test(next) && !next.startsWith('$')) {
+          name = next.slice(0,60);
+        }
+        const pm = next.match(/^\$?([\d]+\.[\d]{2})$/);
+        if(pm) { if(!price) price=parseFloat(pm[1]); else if(!cost) cost=parseFloat(pm[1]); }
+        const qm = next.match(/^([\d,]+)\.?0*$/);
+        if(qm) qty=Math.round(parseFloat(qm[0].replace(/,/g,'')));
+      }
+      if(upc.length>=8 && name.length>1) {
+        const isDup=seenUPCs[upc]!==undefined;
+        seenUPCs[upc]=(seenUPCs[upc]||0)+1;
+        products.push({upc,name,dept:'GM',price,cost,qty,isDuplicate:isDup});
+      }
+    }
+    i++;
+  }
+  if(products.length===0) {
+    const preview=document.getElementById('csvPreview');
+    if(preview) preview.innerHTML='<div style="background:var(--amber-lt);border:1px solid var(--amber);border-radius:6px;padding:12px;font-size:12px;color:var(--amber-txt)"><strong>&#9888; No products found in PDF</strong><br/>This PDF is likely a scanned image — text cannot be extracted.<br/><br/><strong>Solution:</strong> Export from Phaser as <strong>CSV or Excel</strong> — works perfectly and imports faster.</div>';
+    const drop=document.getElementById('csvDropZone');
+    if(drop){drop.style.borderColor='var(--amber)';drop.style.background='var(--amber-lt)';}
+    window._currentBatchProducts=null;
+    return;
+  }
+  finishLoad(products, filename);
+}
+
+
+function finishLoad(products, filename) {
+  window._currentBatchProducts = products;
+  // Also update the module-scoped variable
+  if(typeof currentBatchProducts !== 'undefined') currentBatchProducts = products;
+  const preview = document.getElementById('csvPreview');
+  const drop = document.getElementById('csvDropZone');
+  if(drop){
+    drop.style.borderColor='var(--green)';drop.style.background='var(--green-lt)';
+    drop.innerHTML='<div style="font-size:24px;margin-bottom:4px">&#10003;</div><div style="font-size:13px;font-weight:600;color:var(--green-txt)">'+filename+'</div><div style="font-size:11px;color:var(--green-txt)">Click to choose a different file</div>';
+  }
+  if(preview) preview.innerHTML=products.length
+    ?'<div style="background:var(--green-lt);border:1px solid var(--green);border-radius:6px;padding:10px;font-size:12px;color:var(--green-txt)"><strong>✓ '+products.length+' products loaded from '+filename+'</strong><br/><span style="font-size:11px">Ready — click Start import below</span></div>'
+    :'<div style="color:var(--red);font-size:12px">No products found in file — check format</div>';
+  calcImportStats(products);
+}
+
+function calcImportStats(products) {
+  if(!products) return;
+  const total = products.length;
+  const newProds = products.filter(p => !Object.values(PRODUCTS).find(x=>x.upc===p.upc)).length;
+  const updates = total - newProds;
+  const incomplete = products.filter(p => !p.price||p.price===0||!p.cost||p.cost===0).length;
+  document.getElementById('importTotal').textContent = total;
+  document.getElementById('importNew').textContent = newProds;
+  document.getElementById('importUpdate').textContent = updates;
+  document.getElementById('importIncomplete').textContent = incomplete;
+}
+
+
+window.rerunMayBatch = function() {
+  currentBatchProducts = IMPORT_PRODUCTS;
+  calcImportStats(IMPORT_PRODUCTS);
+  // Reset progress UI
+  const progEl = document.getElementById('importProgress');
+  const logEl  = document.getElementById('importLog');
+  const barEl  = document.getElementById('importBar');
+  if(progEl) progEl.style.display='none';
+  if(logEl)  { logEl.style.display='none'; logEl.innerHTML=''; }
+  if(barEl)  barEl.style.width='0%';
+  // Update button and preview
+  const btn = document.getElementById('importStartBtn');
+  if(btn) { btn.disabled=false; btn.textContent='↑ Start import'; btn.style.background='var(--blue-mid)'; }
+  const prev = document.getElementById('csvPreview');
+  if(prev) prev.innerHTML =
+    '<div style="background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:6px;padding:10px;font-size:12px;color:var(--blue-txt)">' +
+    '<strong>✓ May 2026 batch loaded — ' + IMPORT_PRODUCTS.length + ' items with QOH quantities</strong><br/>' +
+    '<span style="font-size:11px">Click ↑ Start import below</span></div>';
+};
+
+// ── IMPORT PRODUCT LIST (from Phaser QOH Report, May 10 2026) ──────
+window._IMPORT_PRODUCTS = window._IMPORT_PRODUCTS || null;
+const IMPORT_PRODUCTS = [
+  // Phaser QOH Report — May 10 2026 — with actual QOH quantities
+  // Format: upc, name, dept, price, cost, qty (QOH from report)
+  {upc:"00000767231380",name:"FLY SWATTER",dept:"GM",price:1.79,cost:1.08,qty:900000},
+  {upc:"00005310994510",name:"AIR MATTRESS FLOATIE",dept:"GM",price:9.99,cost:5.99,qty:1},
+  {upc:"00000433239456",name:"METAL DECO SIGN",dept:"GM",price:14.99,cost:8.00,qty:2},
+  {upc:"00000703060315",name:"BIC REGULAR LIGHTER 5PK",dept:"GM",price:6.79,cost:3.62,qty:1},
+  {upc:"00000630399826",name:"MAGIC CIRCLE TOY",dept:"GM",price:6.99,cost:3.50,qty:2},
+  {upc:"00000756617801",name:"MARVEL PUTTY",dept:"GM",price:6.99,cost:5.05,qty:1},
+  {upc:"00001947352406",name:"POLY POCKETS",dept:"GM",price:11.99,cost:8.30,qty:1},
+  {upc:"00000782904490",name:"CRYSTAL BLUE POOL",dept:"GM",price:24.99,cost:17.90,qty:3},
+  {upc:"00000806319290",name:"SUNSET GLOW POOL",dept:"GM",price:29.99,cost:22.50,qty:4},
+  {upc:"00006154425180",name:"ECO KIT JUSTICE LEAGUE",dept:"GM",price:7.99,cost:4.79,qty:1},
+  {upc:"00000615142541",name:"ECO KIT SHIMMER SHINE",dept:"GM",price:7.99,cost:4.79,qty:1},
+  {upc:"00000050109418",name:"DETAILS MAGIC GLOVES KIDS",dept:"GM",price:1.49,cost:0.75,qty:1},
+  {upc:"00000676831093",name:"SNOWFLAKE MITTS",dept:"GM",price:4.99,cost:2.99,qty:1},
+  {upc:"00000739457427",name:"TOUQUE",dept:"GM",price:9.99,cost:6.49,qty:1},
+  {upc:"00000739531321",name:"TOUQUE GREY",dept:"GM",price:9.99,cost:6.29,qty:1},
+  {upc:"00000739531564",name:"TOUQUE BLUE",dept:"GM",price:9.99,cost:6.49,qty:2},
+  {upc:"00000739530506",name:"TOUQUE CAMO",dept:"GM",price:9.99,cost:6.49,qty:2},
+  {upc:"00000739531555",name:"TOUQUE UNISEX",dept:"GM",price:9.99,cost:6.49,qty:1},
+  {upc:"00000840124103",name:"POM POM KNIT HAT",dept:"GM",price:12.99,cost:9.99,qty:1},
+  {upc:"00000739530568",name:"POM POM TOUQUE",dept:"GM",price:12.99,cost:8.49,qty:1},
+  {upc:"00000739530504",name:"TOUQUE BLACK",dept:"GM",price:4.99,cost:3.29,qty:2},
+  {upc:"00000739531159",name:"TOUQUE BLACK 2",dept:"GM",price:6.99,cost:3.87,qty:1},
+  {upc:"00000739530640",name:"FASHION BEANIE",dept:"GM",price:9.99,cost:6.49,qty:1},
+  {upc:"00000774350170",name:"TOUCH GLOVES DEER",dept:"GM",price:9.99,cost:6.00,qty:1},
+  {upc:"00000774380150",name:"TOUQUE BLACK 3",dept:"GM",price:2.99,cost:1.99,qty:1},
+  {upc:"00000774392031",name:"FELT CAP",dept:"GM",price:6.99,cost:4.40,qty:3},
+  {upc:"00000739530309",name:"TOUQUE GREY 2",dept:"GM",price:2.99,cost:1.99,qty:1},
+  {upc:"00000739530634",name:"TOUQUE GREY 3",dept:"GM",price:4.99,cost:3.49,qty:1},
+  {upc:"00000739530503",name:"TOUQUE BLACK 4",dept:"GM",price:2.99,cost:1.99,qty:4},
+  {upc:"00000774350177",name:"NAVY BEANIE",dept:"GM",price:4.99,cost:2.90,qty:5},
+  {upc:"00000739530635",name:"FELT CAP 2",dept:"GM",price:6.99,cost:4.40,qty:1},
+  {upc:"00000739531314",name:"FELT CAP 3",dept:"GM",price:6.99,cost:4.40,qty:3},
+  {upc:"00000739530999",name:"POM POM TOUQUE 2",dept:"GM",price:12.99,cost:8.00,qty:3},
+  {upc:"00000774350174",name:"FELT BEANIE",dept:"GM",price:9.99,cost:6.30,qty:2},
+  {upc:"00000739531322",name:"TOUQUE 2",dept:"GM",price:9.99,cost:6.99,qty:3},
+  {upc:"00000050945050",name:"DETAILS MAGIC GLOVES KIDS 2",dept:"GM",price:1.49,cost:0.75,qty:1},
+  {upc:"00000739531154",name:"SNOWFLAKE MITTS 2",dept:"GM",price:4.99,cost:2.99,qty:1},
+  {upc:"00000594574427",name:"TOUQUE 3",dept:"GM",price:9.99,cost:6.49,qty:1},
+  {upc:"00000594557145",name:"BLACK MITTS",dept:"GM",price:14.99,cost:9.50,qty:1},
+  {upc:"00000594545052",name:"MAGIC GLOVE ASST ONE SIZE",dept:"GM",price:1.99,cost:0.89,qty:13},
+  {upc:"67021813900",name:"PALMYRA GRILL BRUSH 17-IN",dept:"GM",price:6.99,cost:4.65,qty:3},
+  {upc:"00000774350175",name:"TOUCH GLOVES DEER 2",dept:"GM",price:9.99,cost:6.00,qty:1},
+  {upc:"00000290490091",name:"C.M. GOLD STK FLY TRAP",dept:"GM",price:5.99,cost:3.26,qty:37},
+  {upc:"00000069420000",name:"SPLASHKLEARN POOL",dept:"GM",price:29.99,cost:19.22,qty:7},
+  {upc:"00000782573142",name:"WET SET COLLECTION",dept:"GM",price:19.99,cost:13.90,qty:5},
+  {upc:"00000694213989",name:"BEACHBALL",dept:"GM",price:2.99,cost:1.54,qty:4},
+  {upc:"00000694213898",name:"BEACH BALL",dept:"GM",price:8.99,cost:5.00,qty:1},
+  {upc:"00000742138987",name:"WATER WINGS",dept:"GM",price:2.99,cost:1.14,qty:4},
+  {upc:"00000742139870",name:"WATER BOMBS",dept:"GM",price:6.99,cost:4.26,qty:1},
+  {upc:"00000785169024",name:"NEON WATER MAT",dept:"GM",price:5.99,cost:5.99,qty:3},
+  {upc:"00000785167323",name:"SYLV TRIL DBL 50/100/150W",dept:"GM",price:3.99,cost:1.99,qty:6},
+  {upc:"00009782898929",name:"MEGA SURPRISE PACK BATWM",dept:"GM",price:5.99,cost:5.99,qty:1},
+  {upc:"00009782898923",name:"MEGA SURPRISE PACK DC PET",dept:"GM",price:5.99,cost:5.99,qty:1},
+  {upc:"00009782898933",name:"MEGA SURPRISE PACK PAW B",dept:"GM",price:5.99,cost:5.99,qty:1},
+  {upc:"00009782898931",name:"MEGA SURPRISE PACK DC",dept:"GM",price:5.99,cost:5.99,qty:1},
+  {upc:"00000594901427",name:"KITCHEN MICROFIBRE TOWEL 10 PACK",dept:"GM",price:14.35,cost:9.33,qty:1},
+  {upc:"00000244641079",name:"JUMP ROPE",dept:"GM",price:3.99,cost:2.17,qty:1},
+  {upc:"00000594410790",name:"COGHLAN STEEL TENT STAKES",dept:"GM",price:6.05,cost:3.35,qty:1},
+  {upc:"00000594545058",name:"GOOFY JUMP ROPE",dept:"GM",price:6.99,cost:4.06,qty:6},
+  {upc:"00000270036528",name:"MICROFIBER CLEAN CLOTH 5PK",dept:"GM",price:7.55,cost:4.91,qty:1},
+  {upc:"00000500006282",name:"FRASH POP WATCH",dept:"GM",price:3.99,cost:2.58,qty:1},
+  {upc:"01046512200",name:"BUBBLE FUN WAND",dept:"Grocery",price:4.99,cost:2.69,qty:5},
+  {upc:"00000808521954",name:"THINKING PUTTY CRYPTIC CODE",dept:"GM",price:19.99,cost:14.02,qty:2},
+  {upc:"00000787902087",name:"CRAZY ARROW FOOTBALL",dept:"GM",price:14.99,cost:9.34,qty:1},
+  {upc:"00000630227080",name:"SILICONE STRAWS",dept:"GM",price:5.85,cost:3.66,qty:3},
+  {upc:"00000563039802",name:"STARFRIT",dept:"GM",price:5.99,cost:3.12,qty:3},
+  {upc:"00000540403000",name:"TONKA DOG TREAT FEEDER",dept:"GM",price:18.99,cost:10.46,qty:1},
+  {upc:"00000744350170",name:"ROCKET COPTERS",dept:"GM",price:12.99,cost:8.00,qty:1},
+  {upc:"00000603022708",name:"STINKY ROCKS",dept:"GM",price:19.99,cost:15.58,qty:1},
+  {upc:"00000742135017",name:"AMAZING AQUARIUM",dept:"GM",price:6.99,cost:4.00,qty:2},
+  {upc:"00000563890316",name:"COGHLAN BBQ GAS LIGHTER",dept:"GM",price:5.25,cost:2.93,qty:2},
+  {upc:"00001743529255",name:"FIRE STICKS 3 PACK",dept:"GM",price:8.65,cost:5.15,qty:6},
+  {upc:"00000601621391",name:"S.STEEL MEAT THERMOMETER",dept:"GM",price:9.99,cost:4.62,qty:4},
+  {upc:"00000060101601",name:"DISPOSABLE BUTANE LIGHTER",dept:"GM",price:4.29,cost:2.26,qty:1},
+  {upc:"00000077790207",name:"UTILITY HOOKS MEDIUM WHITE 6 HOOKS",dept:"GM",price:5.99,cost:2.93,qty:1},
+  {upc:"00000716220013",name:"ICE CREAM SOCKS 4PK",dept:"GM",price:24.99,cost:16.48,qty:6},
+  {upc:"00000774350201",name:"SILLY PUTTY ORIGINAL",dept:"GM",price:2.49,cost:1.60,qty:2},
+  {upc:"00000774350202",name:"WATERSNAKE",dept:"GM",price:4.99,cost:2.50,qty:5},
+  {upc:"00000563900806",name:"UTILITY HOOKS SMALL WHITE 2 HOOKS",dept:"GM",price:5.49,cost:3.01,qty:1},
+  {upc:"00000076566016",name:"SUPER BUBBLES",dept:"GM",price:2.99,cost:1.98,qty:1},
+  {upc:"00000683629210",name:"FIDGET POP BALL",dept:"GM",price:9.99,cost:7.28,qty:1},
+  {upc:"00000188867017",name:"DINOSAUR BALL",dept:"GM",price:4.99,cost:2.50,qty:1},
+  {upc:"00000766601668",name:"PUSH BALL",dept:"GM",price:2.99,cost:1.98,qty:1},
+  {upc:"00000592248588",name:"MAX ALKALINE BATTERY AA4 PACK",dept:"GM",price:9.99,cost:5.59,qty:5},
+  {upc:"00000592440900",name:"ENERGIZER MAX AAA",dept:"GM",price:7.99,cost:3.78,qty:6},
+  {upc:"00000563192990",name:"HOT WHEELS PUZZLE",dept:"GM",price:20.99,cost:22.50,qty:3},
+  {upc:"00000080959191",name:"WATER GAME",dept:"GM",price:3.99,cost:1.10,qty:4},
+  {upc:"00000050101941",name:"TRANSFORMER",dept:"GM",price:8.99,cost:4.79,qty:1},
+  {upc:"00000019473524",name:"CRYSTAL BLUE",dept:"GM",price:28.09,cost:10.70,qty:4},
+  {upc:"00000006324880",name:"GFCI RECEPTACLE 20A WHT",dept:"GM",price:35.99,cost:22.28,qty:1},
+  {upc:"00000197434295",name:"BOBA TEA CLIP PLUSH",dept:"Grocery",price:6.99,cost:4.00,qty:12},
+  {upc:"00000563050989",name:"CLUE CARDS",dept:"GM",price:12.99,cost:7.52,qty:1},
+  {upc:"00000244641080",name:"SLIME-IN-A-CAN",dept:"GM",price:5.99,cost:3.02,qty:1},
+  {upc:"00000060306846",name:"UTILITY HOOK LARGE WHITE 3 HOOKS",dept:"GM",price:8.89,cost:5.77,qty:6},
+  {upc:"00000051137926",name:"UTILITY HOOK SMALL WHITE 1 HOOK",dept:"GM",price:5.89,cost:4.13,qty:1},
+  {upc:"00000051141360",name:"ADHESIVE REFILL STRIPS MIXED 16PC",dept:"GM",price:4.85,cost:3.14,qty:1},
+  {upc:"00000051131796",name:"ADHESIVE HANGING STRIPS 24 PIECE",dept:"GM",price:18.09,cost:11.74,qty:1},
+  {upc:"00000051419225",name:"ADHESIVE PICTURE STRIP LARGE 4PK",dept:"GM",price:7.99,cost:4.45,qty:1},
+  {upc:"00000051131980",name:"UTILITY HOOKS MEDIUM WHITE 6HK",dept:"GM",price:13.49,cost:8.06,qty:1},
+  {upc:"00000051141359",name:"ADHESIVE WIRE HOOK MEDIUM",dept:"GM",price:5.49,cost:3.32,qty:4},
+  {upc:"00000051136349",name:"ADHESIVE DECO CLIP",dept:"GM",price:9.79,cost:5.66,qty:7},
+  {upc:"00000051131706",name:"ADHESIVE LRG WINDOW HOOK OUTDOOR",dept:"GM",price:7.99,cost:4.68,qty:3},
+  {upc:"00000051197375",name:"ADHESIVE 1000EA",dept:"GM",price:14.99,cost:8.79,qty:5},
+  {upc:"00000051131762",name:"ADHESIVE WIRE HOOK MEDIUM 2",dept:"GM",price:5.49,cost:3.32,qty:4},
+  {upc:"00000051170623",name:"COMMAND ADH MED HOOK-2PK",dept:"GM",price:5.29,cost:3.01,qty:3},
+  {upc:"00000051141358",name:"ADHESIVE WIRE HOOK SMALL CLEAR",dept:"GM",price:4.99,cost:3.41,qty:2},
+  {upc:"00000051136009",name:"ADHESIVE HOOK MEDIUM",dept:"GM",price:6.99,cost:4.24,qty:1},
+  {upc:"00000051197393",name:"COMMAND HOOK UTENSIL",dept:"GM",price:5.49,cost:3.30,qty:2},
+  {upc:"00000051413699",name:"ADHESIVE OUTDOOR CLIP",dept:"GM",price:6.99,cost:3.41,qty:3},
+  {upc:"00000051413588",name:"ADHESIVE WIRE HOOK SMALL CLEAR 2",dept:"GM",price:4.99,cost:3.41,qty:1},
+  {upc:"00000051170663",name:"COMMAND ADH LRG HOOK-1PK",dept:"GM",price:6.99,cost:3.97,qty:1},
+  {upc:"00000051413509",name:"COMMAND ADH MED HOOK-2PK 2",dept:"GM",price:5.29,cost:3.01,qty:1},
+  {upc:"00000051136808",name:"ADHESIVE WIRE HOOK SMALL CLEAR 3",dept:"GM",price:4.99,cost:3.41,qty:2},
+  {upc:"00000051413997",name:"ADHESIVE HOOK MEDIUM 2",dept:"GM",price:6.99,cost:4.24,qty:1},
+  {upc:"00000051197457",name:"MINI HOOKS WHITE 18 HOOKS",dept:"GM",price:14.49,cost:7.91,qty:5},
+  {upc:"00000051131709",name:"ADHESIVE WIRE HOOK OUTDOOR",dept:"GM",price:7.99,cost:4.68,qty:4},
+  {upc:"00000051170622",name:"ADHESIVE WIRE HOOK MEDIUM 3",dept:"GM",price:5.49,cost:3.32,qty:3},
+  {upc:"00000051413380",name:"ADHESIVE HOOK MEDIUM 3",dept:"GM",price:6.99,cost:4.24,qty:2},
+  {upc:"00000051170625",name:"ADHESIVE HOOK UTENSIL",dept:"GM",price:5.49,cost:3.30,qty:1},
+  {upc:"00000051413902",name:"ADHESIVE LRG WINDOW HOOK 2",dept:"GM",price:7.99,cost:4.68,qty:1},
+  {upc:"00000059261026",name:"BIRTHDAY CANDLE NUMBER 0",dept:"GM",price:1.19,cost:0.56,qty:10},
+  {upc:"00000059261027",name:"BIRTHDAY CANDLE NUMBER 1",dept:"GM",price:1.19,cost:0.56,qty:9},
+  {upc:"00000059261028",name:"BIRTHDAY CANDLE NUMBER 5",dept:"GM",price:1.19,cost:0.56,qty:9},
+  {upc:"00000059261029",name:"BIRTHDAY CANDLE NUMBER 7",dept:"GM",price:1.19,cost:0.56,qty:9},
+  {upc:"00000059261030",name:"BIRTHDAY CANDLE NUMBER 8",dept:"GM",price:1.19,cost:0.56,qty:20},
+  {upc:"00000059261031",name:"BIRTHDAY CANDLE NUMBER 9",dept:"GM",price:1.19,cost:0.59,qty:21},
+  {upc:"00000059261032",name:"BIRTHDAY CANDLE LRG",dept:"GM",price:1.19,cost:0.56,qty:22},
+  {upc:"00000059261033",name:"BIRTHDAY CANDLE 12PK",dept:"GM",price:1.19,cost:0.56,qty:6},
+  {upc:"00000059261034",name:"GLOW STICK WHISTLE",dept:"GM",price:3.49,cost:2.00,qty:1},
+  {upc:"00000244640176",name:"TRAIL ALUMINUM COOKSET 5 PIECE",dept:"GM",price:45.85,cost:29.80,qty:1},
+  {upc:"00000594410179",name:"COGHLAN STEEL TENT STAKES 2",dept:"GM",price:6.05,cost:3.35,qty:1},
+  {upc:"00000730162031",name:"AIR HORN 1.4-OZ",dept:"GM",price:16.99,cost:11.04,qty:4},
+  {upc:"00000060680806",name:"JUMBO HAMMOCK",dept:"Grocery",price:38.45,cost:24.96,qty:1},
+  {upc:"00000694016277",name:"PALMYRA GRILL BRUSH H/DU",dept:"GM",price:20.19,cost:13.11,qty:1},
+  {upc:"00000694016278",name:"PALMYRA GRILL BRUSH 17-IN",dept:"GM",price:6.15,cost:3.34,qty:3},
+  {upc:"00000594845047",name:"SUMMER SIZZLE NAPKIN",dept:"GM",price:2.99,cost:1.90,qty:2},
+  {upc:"00000060618277",name:"EXTRA WIDE NY GRL BRS17IN",dept:"GM",price:7.15,cost:4.65,qty:1},
+  {upc:"00000060610277",name:"PALMYRA GRILL BRUSH",dept:"GM",price:13.29,cost:8.63,qty:1},
+  {upc:"00000274488150",name:"ALKALINE BATTERY AAA 16 PACK",dept:"GM",price:8.75,cost:3.79,qty:7},
+  {upc:"00000274884870",name:"COGHLAN EMERG CANDL/HLDR",dept:"GM",price:8.45,cost:4.23,qty:8},
+  {upc:"00000059490419",name:"FUNNY PLAYING CARDS",dept:"GM",price:3.99,cost:2.60,qty:1},
+  {upc:"00000808521955",name:"COFFEE MAKER BLACK 12 CUP",dept:"GM",price:51.99,cost:31.18,qty:1},
+  {upc:"00000694213999",name:"SKY DELTA KITES ASSORTED",dept:"GM",price:6.99,cost:4.89,qty:5},
+  {upc:"00000877310015",name:"B.B.Q LIGHTER SNGL",dept:"GM",price:3.99,cost:1.99,qty:42},
+  {upc:"00000634160043",name:"BIC REGULAR LIGHTER 5PK 2",dept:"GM",price:4.99,cost:2.50,qty:5},
+  {upc:"00000070309282",name:"METAL DECO SIGN 2",dept:"GM",price:14.99,cost:8.00,qty:2},
+  {upc:"00000594167032",name:"AIR MATTRESS FLOATIE 2",dept:"GM",price:9.99,cost:7.29,qty:1},
+  {upc:"00000601827764",name:"PALMYRA GRILL BRUSH 2",dept:"GM",price:6.15,cost:4.65,qty:1},
+  {upc:"00000601627761",name:"EXTRA WIDE NY GRL BRS17IN 2",dept:"GM",price:7.15,cost:4.65,qty:3},
+  {upc:"00000601827739",name:"PALMYRA GRILL BRUSH 3",dept:"GM",price:13.29,cost:8.63,qty:4},
+  {upc:"00000601627763",name:"PALMYRA GRILL BRUSH H/DU 2",dept:"GM",price:20.19,cost:13.11,qty:1},
+  {upc:"00000601018286",name:"WOOD GRILL SCP POWER HDL",dept:"GM",price:20.75,cost:13.48,qty:1},
+  {upc:"00000601016200",name:"PREMIUM SMOKER BOX",dept:"GM",price:39.99,cost:25.32,qty:1},
+  {upc:"00000601018019",name:"FOLDING LAWN CHAIR",dept:"GM",price:19.99,cost:12.20,qty:3},
+  {upc:"00000963658574",name:"FLY LURE RIBBON",dept:"GM",price:4.89,cost:1.78,qty:4},
+  {upc:"00000963729229",name:"FLY RIBBON 4 PACK",dept:"GM",price:3.49,cost:1.78,qty:2},
+  {upc:"00000042329244",name:"FLY LURE RIBBON 2",dept:"GM",price:4.89,cost:1.78,qty:2},
+  {upc:"00000043325922",name:"VICTOR MOUSE TRAPS PK-2",dept:"GM",price:2.95,cost:1.57,qty:5},
+  {upc:"00000077286800",name:"SKY DELTA KITES ASSORTED 2",dept:"GM",price:6.99,cost:4.89,qty:5},
+  {upc:"00000404975137",name:"UNIQUE BALLOONS 3000PC",dept:"GM",price:3.99,cost:2.20,qty:1},
+  {upc:"00000694210000",name:"E/C LINT SWEATR BRUSH",dept:"GM",price:4.99,cost:2.97,qty:1},
+  {upc:"00000567625200",name:"MEASURING CUP 5 PIECE",dept:"GM",price:7.99,cost:4.78,qty:1},
+  {upc:"00000043339826",name:"METAL DECO SIGN 3",dept:"GM",price:14.99,cost:8.00,qty:1},
+  {upc:"00000687901900",name:"CRAZY AARON BASEBALL",dept:"GM",price:6.99,cost:3.50,qty:8},
+  {upc:"00000036350146",name:"INDOOR CORD",dept:"GM",price:11.99,cost:8.30,qty:1},
+  {upc:"00000563508023",name:"POLY POCKETS 2",dept:"GM",price:11.99,cost:8.30,qty:1},
+  {upc:"00000010984279",name:"CONNECT 4 CARDS",dept:"GM",price:12.99,cost:7.52,qty:1},
+  {upc:"00000810128427",name:"WATER GAME 2",dept:"GM",price:3.99,cost:1.10,qty:1},
+  {upc:"00000001013200",name:"SCRUB BRUSH SET NYLON 2 PIECE",dept:"GM",price:6.49,cost:2.72,qty:1},
+  {upc:"00000676831320",name:"FIDGET POP BALL 2",dept:"GM",price:9.99,cost:7.28,qty:1},
+  {upc:"00000676831709",name:"CRANK FLASH LIGHT",dept:"GM",price:9.99,cost:5.90,qty:1},
+  {upc:"00000593963201",name:"TRANSFORMER 2",dept:"GM",price:8.99,cost:4.79,qty:1},
+  {upc:"00000676835620",name:"BLOW-UP LAWN CHAIR",dept:"GM",price:15.99,cost:10.00,qty:6},
+  {upc:"00000244464101",name:"BUBBLE FUN ANIMAL",dept:"GM",price:5.99,cost:3.26,qty:1},
+  {upc:"00000036600945",name:"LUMA LAMP REFILL",dept:"GM",price:8.99,cost:4.60,qty:17},
+  {upc:"00000501099418",name:"MAGIC SAND",dept:"Grocery",price:2.29,cost:1.10,qty:1},
+  {upc:"00000046315180",name:"SYLV TRIL DBL 50/100/150W 2",dept:"GM",price:3.99,cost:1.99,qty:1},
+  {upc:"00000336647429",name:"GFCI RECEPTACLE 20A WHT 2",dept:"GM",price:35.99,cost:22.28,qty:1},
+  {upc:"00000563484029",name:"INDOOR CORD 2",dept:"GM",price:11.99,cost:8.30,qty:1},
+  {upc:"00000009782829",name:"MEGA SURPRISE PACK DC 2",dept:"GM",price:5.99,cost:5.99,qty:1},
+  {upc:"00000009782833",name:"MEGA SURPRISE PACK PAW B 2",dept:"GM",price:5.99,cost:5.99,qty:1},
+  {upc:"00000786289923",name:"MEGA SURPRISE PACK SMURF",dept:"GM",price:5.99,cost:5.99,qty:2},
+  {upc:"00000059454466",name:"GOUMET COURSE GRATER",dept:"GM",price:12.99,cost:7.94,qty:2},
+  {upc:"00000059454467",name:"LADIES BUCKET HAT",dept:"GM",price:8.99,cost:5.50,qty:2},
+];
+window._IMPORT_PRODUCTS = IMPORT_PRODUCTS;
+
+
+</script>
+
+<script>
+// &#9472;&#9472; IMPORT FUNCTIONS &#8212; regular script so onclick always works &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+function startBulkImport() {
+  const products = window._currentBatchProducts;
+  if(!products || !products.length) {
+    alert('No file loaded yet &#8212; please select a CSV, Excel or PDF file first.');
+    return;
+  }
+
+  // Read location ONCE at start &#8212; required field
+  const locField = document.getElementById('importLocation');
+  const importLoc = locField ? locField.value.trim() : '';
+  if(!importLoc) {
+    alert('Please enter a location before importing (e.g. C 11 A)');
+    if(locField) { locField.focus(); locField.style.borderColor='var(--red)'; }
+    return;
+  }
+  if(locField) locField.style.borderColor='';
+  console.log('Import location:', importLoc);
+
+  const btn = document.getElementById('importStartBtn');
+  const prog = document.getElementById('importProgress');
+  const logEl = document.getElementById('importLog');
+  const bar = document.getElementById('importBar');
+  const stat = document.getElementById('importStatus');
+
+  if(btn) { btn.disabled=true; btn.textContent='Importing '+products.length+' items&#8230;'; }
+  if(prog) prog.style.display='block';
+  if(logEl) { logEl.style.display='block'; logEl.innerHTML=''; }
+
+  let added=0, updated=0, failed=0;
+  let i=0;
+
+  function processNext() {
+    if(i >= products.length) {
+      if(bar) bar.style.width='100%';
+      if(stat) stat.textContent='Done! '+updated+' updated, '+added+' added, '+failed+' failed';
+      if(btn) { 
+        btn.disabled=false;
+        btn.textContent='&#10003; Complete &#8212; click to close';
+        btn.style.background='#3B6D11';
+        btn.style.color='#fff';
+        btn.onclick=function(){ 
+          const mo=document.getElementById('importMo');
+          if(mo) mo.classList.remove('open');
+        };
+      }
+      if(window.toast) window.toast('Import done &#8212; '+updated+' updated, '+added+' added');
+      return;
+    }
+
+    const p = products[i];
+    if(bar) bar.style.width = Math.round((i/products.length)*100)+'%';
+    if(stat) stat.textContent = 'Processing '+(i+1)+' of '+products.length+'&#8230;';
+
+    const allProds = Object.values(window._PRODUCTS||{});
+    const existing = allProds.find(function(x) {
+      return String(x.upc).replace(/[^0-9]/g,'') === String(p.upc).replace(/[^0-9]/g,'');
+    });
+
+    const upd = { price: Number(p.price)||0, cost: Number(p.cost)||0 };
+    if(p.qty && Number(p.qty) > 0) upd.backroom = Number(p.qty);
+    if(importLoc) upd.loc = importLoc;
+
+    if(existing && existing._id && window._updateProduct) {
+      window._updateProduct(existing._id, upd).then(function() {
+        updated++;
+        if(logEl) logEl.innerHTML += '<div style="color:#185FA5">&#8635; '+p.name+' qty='+p.qty+'</div>';
+        if(logEl) logEl.scrollTop = logEl.scrollHeight;
+        i++; setTimeout(processNext, 50);
+      }).catch(function(e) {
+        failed++;
+        if(logEl) logEl.innerHTML += '<div style="color:#A32D2D">&#10007; '+p.name+': '+(e.message||e)+'</div>';
+        i++; setTimeout(processNext, 50);
+      });
+    } else if(window._addProduct) {
+      window._addProduct({
+        upc: String(p.upc), name: String(p.name),
+        dept: p.dept||'GM', loc: importLoc,
+        backroom: Math.round(parseFloat(String(p.qty||'1').replace(/,/g,'')))||1,
+        price: Number(p.price)||0, cost: Number(p.cost)||0, photo: null
+      }).then(function() {
+        added++;
+        if(logEl) logEl.innerHTML += '<div style="color:#3B6D11">&#10003; '+p.name+'</div>';
+        if(logEl) logEl.scrollTop = logEl.scrollHeight;
+        i++; setTimeout(processNext, 50);
+      }).catch(function(e) {
+        failed++;
+        if(logEl) logEl.innerHTML += '<div style="color:#A32D2D">&#10007; '+p.name+': '+(e.message||e)+'</div>';
+        i++; setTimeout(processNext, 50);
+      });
+    } else {
+      failed++;
+      if(logEl) logEl.innerHTML += '<div style="color:#A32D2D">&#10007; Firebase not ready yet &#8212; try again in 5 seconds</div>';
+      if(btn) { btn.disabled=false; btn.textContent='&#8593; Retry'; }
+      return;
+    }
+  }
+
+  processNext();
+}
+
+function deleteProduct(pid) {
+  if(!pid) return;
+  const p = window._PRODUCTS && window._PRODUCTS[pid];
+  const name = p ? p.name : 'this product';
+  if(!confirm('Delete "' + name + '" from the system?\n\nItem data will be remembered &#8212; scanning this barcode again will restore all its details.')) return;
+  if(window._deleteProduct) {
+    // Archive first, then delete
+    window._archiveProduct(p).then(function() {
+      return window._deleteProduct(pid);
+    }).then(function() {
+      if(window.closeMo) window.closeMo('adjMo');
+      if(window.toast) window.toast('Product deleted &#8212; data archived for future scans');
+    }).catch(function(e) {
+      alert('Delete failed: ' + e.message);
+    });
+  } else {
+    alert('Firebase not ready &#8212; try again');
+  }
+}
+
+function rerunMayBatch() {
+  if(!window._IMPORT_PRODUCTS) { alert('Products not loaded yet &#8212; wait a moment'); return; }
+  window._currentBatchProducts = window._IMPORT_PRODUCTS;
+  
+  const prev = document.getElementById('csvPreview');
+  if(prev) prev.innerHTML = '<div style="background:#E6F1FB;border:1px solid #185FA5;border-radius:6px;padding:10px;font-size:12px;color:#0C447C"><strong>&#10003; May 2026 batch loaded &#8212; '+window._IMPORT_PRODUCTS.length+' items with QOH quantities</strong><br/><span style="font-size:11px">Click &#8593; Start import below</span></div>';
+  
+  const btn = document.getElementById('importStartBtn');
+  if(btn) { btn.disabled=false; btn.textContent='&#8593; Start import'; }
+  
+  // Reset progress
+  const prog=document.getElementById('importProgress');
+  const logEl=document.getElementById('importLog');
+  const bar=document.getElementById('importBar');
+  if(prog) prog.style.display='none';
+  if(logEl) { logEl.style.display='none'; logEl.innerHTML=''; }
+  if(bar) bar.style.width='0%';
+
+  // Update stats
+  const prods = window._IMPORT_PRODUCTS;
+  const allProds = Object.values(window._PRODUCTS||{});
+  const newCount = prods.filter(function(p){ return !allProds.find(function(x){ return String(x.upc)===String(p.upc); }); }).length;
+  const updCount = prods.length - newCount;
+  const miss = prods.filter(function(p){ return !p.price||!p.cost; }).length;
+  const t=document.getElementById('importTotal'), n=document.getElementById('importNew');
+  const u=document.getElementById('importUpdate'), m=document.getElementById('importIncomplete');
+  if(t) t.textContent=prods.length;
+  if(n) n.textContent=newCount;
+  if(u) u.textContent=updCount;
+  if(m) m.textContent=miss;
+}
+</script>
+
+<script>
+// -- BACKUP SYSTEM -------------------------------------------------
+function openBackupModal(){updateLastBackupDisplay();document.getElementById('backupMo').classList.add('open');}
+function doBackupNow(){openBackupModal();}
+
+function updateLastBackupDisplay(){
+  const ts=localStorage.getItem('lastBackupTime');
+  const el=document.getElementById('lastBackupTime');
+  if(!el)return;
+  if(!ts){el.textContent='Never &#8212; backup recommended!';el.style.color='var(--red)';return;}
+  const diff=Date.now()-parseInt(ts);
+  const hours=Math.floor(diff/3600000);
+  el.style.color=diff>86400000?'var(--red)':'var(--green)';
+  el.textContent=new Date(parseInt(ts)).toLocaleString()+' ('+hours+'h ago)';
+}
+
+function checkBackupStatus(){
+  const btn=document.getElementById('backupBtn');
+  if(!btn)return;
+  const isManager=window._currentStaff&&window._currentStaff.isManager;
+  if(!isManager){btn.style.display='none';return;}
+  btn.style.display='block';
+  const ts=localStorage.getItem('lastBackupTime');
+  const overdue=!ts||(Date.now()-parseInt(ts))>86400000;
+  if(overdue){btn.classList.add('backup-urgent');btn.innerHTML='&#128308; Backup Now!';}
+  else{btn.classList.remove('backup-urgent');btn.innerHTML='&#128190; Backup';btn.style.background='var(--green)';}
+}
+
+function exportToExcel(){
+  const products=Object.values(window._PRODUCTS||{});
+  if(!products.length){alert('No products to export');return;}
+  const log=document.getElementById('backupLog');
+  if(log){log.style.display='block';log.innerHTML='Building file&#8230;';}
+  const headers=['UPC','Product Name','Department','Location','Backroom Qty','Price','Cost'];
+  const rows=products.map(p=>[p.upc||'',p.name||'',p.dept||'',p.loc||'',p.backroom||0,Number(p.price||0).toFixed(2),Number(p.cost||0).toFixed(2)]);
+  if(window.XLSX){
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+    ws['!cols']=[{wch:16},{wch:40},{wch:12},{wch:18},{wch:14},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws,'Inventory');
+    XLSX.writeFile(wb,'BackroomInventory_'+new Date().toISOString().split('T')[0]+'.xlsx');
+    if(log)log.innerHTML='&#10003; Excel downloaded &#8212; '+products.length+' products';
+  } else {
+    const csv=[headers.join(','),...rows.map(r=>r.join(','))].join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    a.download='BackroomInventory_'+new Date().toISOString().split('T')[0]+'.csv';
+    a.click();
+    if(log)log.innerHTML='&#10003; CSV downloaded &#8212; '+products.length+' products';
+  }
+  localStorage.setItem('lastBackupTime',Date.now().toString());
+  if(window._updateBackupTime)window._updateBackupTime();
+  updateLastBackupDisplay();
+  checkBackupStatus();
+}
+
+function importFromExcel(input){
+  const file=input.files[0];if(!file)return;
+  const log=document.getElementById('backupLog');
+  if(log){log.style.display='block';log.innerHTML='Reading file&#8230;';}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      let products=[];
+      if(file.name.endsWith('.xlsx')&&window.XLSX){
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        const data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});
+        const h=data[0].map(x=>String(x).toLowerCase());
+        const ui=h.findIndex(x=>x.includes('upc')),ni=h.findIndex(x=>x.includes('name')||x.includes('product'));
+        const di=h.findIndex(x=>x.includes('dept')),li=h.findIndex(x=>x.includes('loc'));
+        const qi=h.findIndex(x=>x.includes('qty')||x.includes('backroom'));
+        const pi=h.findIndex(x=>x.includes('price')),ci=h.findIndex(x=>x.includes('cost'));
+        for(let i=1;i<data.length;i++){const r=data[i];if(!r[ui])continue;products.push({upc:String(r[ui]),name:String(r[ni]||''),dept:String(r[di]||'GM'),loc:String(r[li]||'C 11'),backroom:parseInt(r[qi])||0,price:parseFloat(r[pi])||0,cost:parseFloat(r[ci])||0,photo:null});}
+      } else {
+        const lines=new TextDecoder().decode(e.target.result).split('\n').filter(l=>l.trim());
+        lines.slice(1).forEach(line=>{const c=line.split(',');if(c[0])products.push({upc:c[0].trim(),name:(c[1]||'').trim(),dept:(c[2]||'GM').trim(),loc:(c[3]||'C 11').trim(),backroom:parseInt(c[4])||0,price:parseFloat(c[5])||0,cost:parseFloat(c[6])||0,photo:null});});
+      }
+      if(!products.length){if(log)log.innerHTML='No products found';return;}
+      if(!confirm('Restore '+products.length+' products?\nExisting products with matching UPC will be updated.'))return;
+      if(log)log.innerHTML='Restoring&#8230;';
+      let done=0,fails=0;
+      function next(i){
+        if(i>=products.length){if(log)log.innerHTML='&#10003; Restored '+done+' products';if(window.toast)window.toast('Restore complete &#8212; '+done+' products');return;}
+        const p=products[i];
+        const ex=Object.values(window._PRODUCTS||{}).find(x=>String(x.upc)===String(p.upc));
+        const action=ex&&ex._id?window._updateProduct(ex._id,{name:p.name,dept:p.dept,loc:p.loc,backroom:p.backroom,price:p.price,cost:p.cost}):window._addProduct(p);
+        action.then(()=>{done++;if(log)log.innerHTML='Restoring&#8230; '+done+'/'+products.length;next(i+1);}).catch(()=>{fails++;next(i+1);});
+      }
+      next(0);
+    }catch(err){if(log)log.innerHTML='Error: '+err.message;}
+  };
+  reader.readAsArrayBuffer(file);
+  input.value='';
+}
+
+// Load SheetJS
+(function(){const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);})();
+// Preload html5-qrcode so scanner is ready instantly
+(function(){
+  if(!window.Html5Qrcode) {
+    var s=document.createElement('script');
+    s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    document.head.appendChild(s);
+  }
+})();
+setInterval(checkBackupStatus,60000);
+
+// -- PICK LIST SYSTEM ----------------------------------------------
+let pickList = []; // {upc, name, loc, dept, cost, price, photo, addedAt}
+let pickCameraStream = null;
+let pickScanning = false;
+let pickHtml5Scanner = null;
+let pickLastUPC = '';
+let pickLastTime = 0;
+
+window.startPickCamera = function() {
+  // Change button to show loading state
+  var btn = document.querySelector('#pickScanTrigger button');
+  if(btn) { btn.textContent = 'Opening camera...'; btn.disabled = true; }
+
+  function doStart() {
+    // Always remove old scanner div and create fresh
+    var container = document.getElementById('pickCameraView');
+    var vid = document.getElementById('pickScanVideo');
+    if(vid) vid.style.display = 'none';
+    
+    var oldDiv = document.getElementById('pickQrDiv');
+    if(oldDiv) oldDiv.remove();
+    var div = document.createElement('div');
+    div.id = 'pickQrDiv';
+    div.style.width = '100%';
+    container.insertBefore(div, container.firstChild);
+
+    container.style.display = 'block';
+    document.getElementById('pickScanTrigger').style.display = 'none';
+    pickScanning = true;
+
+    try {
+      pickHtml5Scanner = new Html5Qrcode('pickQrDiv');
+      pickHtml5Scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 220, height: 100 } },
+        function(text) {
+          if(pickScanning) onPickBarcode(text);
+        },
+        function(err) {}
+      ).catch(function(e) {
+        console.error('Scanner start error:', e);
+        container.style.display = 'none';
+        document.getElementById('pickScanTrigger').style.display = 'block';
+        if(btn) { btn.innerHTML = '&#128247; Start scanning'; btn.disabled = false; }
+        pickScanning = false;
+        alert('Camera permission denied.\n\niPhone: Settings > Safari > Camera > Allow\nThen refresh the page.');
+      });
+    } catch(e) {
+      console.error('Html5Qrcode error:', e);
+      container.style.display = 'none';
+      document.getElementById('pickScanTrigger').style.display = 'block';
+      if(btn) { btn.innerHTML = '&#128247; Start scanning'; btn.disabled = false; }
+      pickScanning = false;
+      alert('Scanner error: ' + e.message);
+    }
+  }
+
+  // Load library if not already loaded
+  if(window.Html5Qrcode) {
+    doStart();
+  } else {
+    var s = document.createElement('script');
+    s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    s.onload = function() { doStart(); };
+    s.onerror = function() {
+      if(btn) { btn.innerHTML = '&#128247; Start scanning'; btn.disabled = false; }
+      alert('Failed to load scanner library. Check your internet connection.');
+    };
+    document.head.appendChild(s);
+  }
+};
+
+
+window.stopPickCamera = function() {
+  pickScanning = false;
+  var hideUI = function() {
+    // Clean up the scanner div completely
+    var div = document.getElementById('pickQrDiv');
+    if(div) { div.innerHTML = ''; div.remove(); }
+    // Stop any raw stream
+    if(pickCameraStream) {
+      pickCameraStream.getTracks().forEach(function(t){ try{t.stop();}catch(e){} });
+      pickCameraStream = null;
+    }
+    var vid = document.getElementById('pickScanVideo');
+    if(vid) { try{ vid.srcObject = null; }catch(e){} vid.style.display = 'block'; }
+    var camView = document.getElementById('pickCameraView');
+    if(camView) camView.style.display = 'none';
+    var trigger = document.getElementById('pickScanTrigger');
+    if(trigger) trigger.style.display = 'block';
+    var btn = document.querySelector('#pickScanTrigger button');
+    if(btn) { btn.innerHTML = '&#128247; Start scanning'; btn.disabled = false; }
+    pickHtml5Scanner = null;
+  };
+  if(pickHtml5Scanner) {
+    try {
+      pickHtml5Scanner.stop().then(function() {
+        try { pickHtml5Scanner.clear(); } catch(e) {}
+        hideUI();
+      }).catch(function() { hideUI(); });
+    } catch(e) { hideUI(); }
+  } else {
+    hideUI();
+  }
+}
+
+window.onPickBarcode = function(raw) {
+  const upc = String(raw).replace(/[^0-9]/g,'');
+  if(upc.length < 6) return;
+  // Debounce &#8212; don't add same UPC twice within 2 seconds
+  const now = Date.now();
+  if(upc === pickLastUPC && now - pickLastTime < 2000) return;
+  pickLastUPC = upc;
+  pickLastTime = now;
+  // Flash green
+  const view = document.getElementById('pickCameraView');
+  if(view) { view.style.outline='3px solid #4ade80'; setTimeout(()=>{ if(view) view.style.outline=''; },500); }
+  if(navigator.vibrate) navigator.vibrate(80);
+  addToPickList(upc);
+}
+
+window.addToPickList = function(upc) {
+  upc = String(upc||'').replace(/[^0-9]/g,'').trim();
+  if(!upc || upc.length < 6) { if(document.getElementById('pickUpcInput')) document.getElementById('pickUpcInput').value=''; return; }
+  
+  // Look up product
+  const prods = Object.values(window._PRODUCTS||{});
+  const p = prods.find(x=>String(x.upc).replace(/[^0-9]/g,'')=== upc);
+  
+  // Only add items that are IN the system AND have backroom qty = 0
+  if(!p) {
+    toast('Not in system &#8212; skipping');
+    if(document.getElementById('pickUpcInput')) document.getElementById('pickUpcInput').value='';
+    return;
+  }
+  if(Number(p.backroom||0) > 0) {
+    toast(p.name + ' has ' + p.backroom + ' units in backroom &#8212; skipping');
+    if(document.getElementById('pickUpcInput')) document.getElementById('pickUpcInput').value='';
+    return;
+  }
+
+  // Check not already in list
+  if(pickList.find(function(x){return x.upc===upc;})) {
+    toast('Already on pick list: '+p.name);
+    if(document.getElementById('pickUpcInput')) document.getElementById('pickUpcInput').value='';
+    return;
+  }
+
+  const item = {
+    upc: upc,
+    name: p.name,
+    loc: p.loc || '&#8212;',
+    dept: p.dept || '&#8212;',
+    price: Number(p.price||0),
+    cost: Number(p.cost||0),
+    photo: p.photo || null,
+    backroom: 0,
+    addedAt: new Date().toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}),
+    found: true
+  };
+
+  pickList.push(item);
+  renderPickList();
+  toast(p.name + ' added to pick list');
+  if(document.getElementById('pickUpcInput')) document.getElementById('pickUpcInput').value='';
+}
+
+window.removeFromPickList = function(upc) {
+  pickList = pickList.filter(x=>x.upc!==upc);
+  renderPickList();
+}
+
+window.clearPickList = function() {
+  if(pickList.length && !confirm('Clear the entire pick list?')) return;
+  pickList = [];
+  renderPickList();
+  stopPickCamera();
+}
+
+window.renderPickList = function() {
+  var count = pickList.length;
+  var countEl = document.getElementById('pickCount');
+  if(countEl) countEl.textContent = count + ' item' + (count!==1?'s':'');
+
+  var printBtn = document.getElementById('printPickBtn');
+  if(printBtn) printBtn.style.display = count > 0 ? 'block' : 'none';
+
+  var container = document.getElementById('pickListContainer');
+  if(container) container.style.display = count > 0 ? 'block' : 'none';
+
+  var dateEl = document.getElementById('pickListDate');
+  if(dateEl) dateEl.textContent = new Date().toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+
+  var listEl = document.getElementById('pickListItems');
+  if(!listEl) return;
+
+  if(!count) {
+    listEl.innerHTML = '<div style="padding:30px;text-align:center;color:var(--text3);font-size:13px">Scan shelf barcodes to build your pick list</div>';
+    return;
+  }
+
+  var html = '';
+  for(var i=0; i<pickList.length; i++) {
+    var item = pickList[i];
+    var photoHtml = item.photo
+      ? '<img src="'+item.photo+'" style="width:44px;height:44px;border-radius:6px;object-fit:cover;border:1px solid var(--border);flex-shrink:0"/>'
+      : '<div style="width:44px;height:44px;border-radius:6px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">&#128230;</div>';
+    var qtyBadge = '<span style="font-size:10px;padding:2px 6px;background:var(--red-lt);color:var(--red-txt);border-radius:999px;font-weight:600">Empty</span>';
+    html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border)">'
+      + '<div style="font-size:13px;font-weight:600;color:var(--text2);min-width:20px">'+(i+1)+'</div>'
+      + photoHtml
+      + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.name+'</div>'
+        + '<div style="font-size:11px;color:var(--text2);display:flex;gap:8px;flex-wrap:wrap">'
+          + '<span style="color:var(--blue-mid);font-weight:600">&#9632; '+item.loc+'</span>'
+          + '<span>'+item.dept+'</span>'
+          + '<span style="font-family:monospace;color:var(--text3)">'+item.upc+'</span>'
+          + qtyBadge
+        + '</div>'
+      + '</div>'
+      + '<div style="text-align:right;flex-shrink:0">'
+        + '<div style="font-size:12px;font-weight:700;color:var(--text)">$'+item.price.toFixed(2)+'</div>'
+        + '<div style="font-size:10px;color:var(--text3);margin-top:2px">'+item.addedAt+'</div>'
+      + '</div>'
+      + '<button onclick="removeFromPickList('+JSON.stringify(item.upc)+')" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0">&#10005;</button>'
+    + '</div>';
+  }
+  listEl.innerHTML = html;
+};
+
+
+
+window.deleteAllProducts = function() {
+  if(!window._currentStaff || !window._currentStaff.isManager) {
+    alert('Only managers can delete all products');
+    return;
+  }
+  var prods = Object.values(window._PRODUCTS || {});
+  var count = prods.length;
+  if(!count) { alert('No products to delete'); return; }
+  if(!confirm('DELETE ALL ' + count + ' products?\nThis cannot be undone. Make a backup first.')) return;
+  if(!confirm('Second confirmation: Wipe all ' + count + ' products?')) return;
+  var ids = prods.map(function(p){ return p._id; }).filter(Boolean);
+  var done = 0;
+  var btn = document.querySelector('#page-team button[onclick*="deleteAll"]');
+  if(btn) { btn.disabled=true; btn.textContent='Deleting 0/'+ids.length+'...'; }
+  function next(i) {
+    if(i >= ids.length) {
+      if(btn) { btn.textContent='Done - '+done+' deleted'; btn.style.background='#3B6D11'; }
+      if(window.toast) window.toast('All '+done+' products deleted');
+      return;
+    }
+    window._deleteProduct(ids[i]).then(function(){ done++; if(btn) btn.textContent='Deleting '+done+'/'+ids.length+'...'; next(i+1); }).catch(function(){ next(i+1); });
+  }
+  next(0);
+};
+</script>
+
+</body>
+</html>
