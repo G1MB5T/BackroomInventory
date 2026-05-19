@@ -1257,6 +1257,12 @@ function renderStats(){
 // ── INVENTORY ─────────────────────────────────────────────────────
 function renderInventory(){
   renderStats();
+  // Build cross-location duplicate map
+  const upcMap={};
+  Object.values(PRODUCTS).forEach(p=>{
+    if(!upcMap[p.upc]) upcMap[p.upc]=[];
+    upcMap[p.upc].push(p.loc||'?');
+  });
   document.getElementById('deptChips').innerHTML=['All',...DEPTS].map(d=>
     `<button class="chip${curDept===d?' active':''}" onclick="setDept('${d}')">${d}</button>`).join('');
   const prods=Object.values(PRODUCTS).filter(p=>{
@@ -1271,9 +1277,10 @@ function renderInventory(){
       ?`<img src="${p.photo}" class="thumb" onclick="event.stopPropagation();openPhotoMo('${p._id}')" title="Click to update"/>`
       :`<div class="thumb-ph" onclick="event.stopPropagation();openPhotoMo('${p._id}')" title="Add photo">📷</div>`;
     const isIncomplete = !p.price || Number(p.price)===0 || !p.cost || Number(p.cost)===0;
-    const isDup = p.flagged || (p.name && p.name.startsWith('⚠ DUPLICATE:'));
+    const isDup = p.flagged || (p.name && p.name.startsWith('&#9888; DUPLICATE:')) || (upcMap[p.upc] && upcMap[p.upc].length > 1);
+    const dupLocs = (upcMap[p.upc] && upcMap[p.upc].length > 1) ? [...new Set(upcMap[p.upc])] : [];
     const badge = isDup
-      ? `<span class="incomplete-badge" style="background:var(--amber-lt);color:var(--amber-txt)">⚠ Duplicate</span>`
+      ? `<span class="incomplete-badge" style="background:var(--amber-lt);color:var(--amber-txt)" title="${dupLocs.join(', ')}">&#9651; ${dupLocs.length} locations</span>`
       : isIncomplete ? `<span class="incomplete-badge">⚠ Missing price/cost</span>` : '';
     return`<tr class="${isDup?'row-duplicate':isIncomplete?'row-incomplete':''}" onclick="openAdjust('${p._id}')">
       <td>${th}</td>
@@ -2090,15 +2097,16 @@ window.loadBatchCSV = function(input) {
           var dept = cols[37].replace(/^"|"$/g,'').trim() || 'GROCERY';
           if(!upc || upc.length < 8 || !name || name.indexOf('NOT IN LOCAL') >= 0) return;
           if(!name || name === 'Description') return;
-          var isDup = phaserSeen[upc] !== undefined;
-          phaserSeen[upc] = true;
-          phaserProducts.push({
-            upc: upc, name: name, dept: dept,
-            qty: Math.round(parseFloat(qoh)||0),
-            price: parseFloat(price)||0,
-            cost: parseFloat(cost)||0,
-            isDuplicate: isDup
-          });
+          var qty = Math.round(parseFloat(qoh)||0);
+          var pr = parseFloat(price)||0;
+          var co = parseFloat(cost)||0;
+          if(phaserSeen[upc] !== undefined) {
+            // Same UPC counted again - sum the quantities
+            phaserProducts[phaserSeen[upc]].qty += qty;
+          } else {
+            phaserSeen[upc] = phaserProducts.length;
+            phaserProducts.push({upc:upc, name:name, dept:dept, qty:qty, price:pr, cost:co, isDuplicate:false});
+          }
         } catch(ex) {}
       });
       finishLoad(phaserProducts, file.name);
@@ -2522,7 +2530,8 @@ function startBulkImport() {
           if(mo) mo.classList.remove('open');
         };
       }
-      if(window.toast) window.toast('Import done &#8212; '+updated+' updated, '+added+' added');
+      var dupNote2 = crossDups > 0 ? ' | &#9888; '+crossDups+' cross-location duplicates' : '';
+      if(window.toast) window.toast('Import done &#8212; '+updated+' updated, '+added+' added'+dupNote2);
       return;
     }
 
@@ -2540,9 +2549,15 @@ function startBulkImport() {
     if(importLoc) upd.loc = importLoc;
 
     if(existing && existing._id && window._updateProduct) {
+      // Check for same UPC at different location (cross-location duplicate)
+      var crossMatch = Object.values(window._PRODUCTS||{}).filter(function(x){
+        return String(x.upc)===String(p.upc) && x._id !== existing._id;
+      });
+      if(crossMatch.length > 0 && typeof crossDups !== 'undefined') crossDups++;
       window._updateProduct(existing._id, upd).then(function() {
         updated++;
-        if(logEl) logEl.innerHTML += '<div style="color:#185FA5">&#8635; '+p.name+' qty='+p.qty+'</div>';
+        var dupNote = crossMatch.length > 0 ? ' <span style="color:var(--amber-txt)">[also at '+crossMatch.map(function(x){return x.loc;}).join(', ')+']</span>' : '';
+        if(logEl) logEl.innerHTML += '<div style="color:#185FA5">&#8635; '+p.name+' qty='+p.qty+dupNote+'</div>';
         if(logEl) logEl.scrollTop = logEl.scrollHeight;
         i++; setTimeout(processNext, 50);
       }).catch(function(e) {
